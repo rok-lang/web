@@ -1,0 +1,82 @@
+// rok-content: check and bundle a content repository for the Rok sites.
+//
+//   rok-content check <dir> [filter]
+//       run every ```rok block under <dir> with $ROKC (default rokc);
+//       exit 1 if one fails or its output differs
+//   rok-content bundle <dir> --repo <r> --branch <b> --sha <s>
+//                      --toolchain <v> --out <file>
+//       write the pages under <dir> to one ROKON bundle
+
+mod bundle;
+mod check;
+
+use rok::std::env;
+use rok::std::fs;
+
+fn usage() {
+    eprintln("usage: rok-content check <dir> [filter]");
+    eprintln("       rok-content bundle <dir> --repo <r> --branch <b> --sha <s> --toolchain <v> --out <file>");
+    env::exit(2);
+}
+
+fn run_check(dir: str, filter: str) throws {
+    let files = try bundle::collect(dir);
+    let snips: List<check::Snippet> = List::new();
+    for (path, text) in files.entries() {
+        if path.ends_with(".md") && path.contains(filter) { snips.extend(check::extract(path, text)); }
+    }
+    let rokc = try env::var("ROKC") catch _ { "rokc" };
+    let bad = try check::check_all(rokc, env::temp_dir().as_str() + "/rok-content-snippets", snips);
+    let run = 0usize;
+    for s in snips {
+        if s.mode != "norun" { run += 1; }
+    }
+    for b in bad { eprint(f"code block: {b}"); }
+    println(f"{run} code blocks checked ({snips.len() - run} norun), {bad.len()} failing");
+    if bad.len() > 0 { env::exit(1); }
+}
+
+fn run_bundle(dir: str, args: List<str>) throws {
+    let opts: Dict<str, str> = Dict::new();
+    let k = 0usize;
+    while k + 1 < args.len() {
+        if !args[k].starts_with("--") { usage(); }
+        opts.insert(args[k][2:], args[k + 1]);
+        k += 2;
+    }
+    if k != args.len() { usage(); }
+    for need in ["repo", "branch", "sha", "toolchain", "out"] {
+        if !opts.contains_key(need) {
+            eprintln(f"error: missing `--{need} <value>`");
+            usage();
+        }
+    }
+    let b = bundle::Bundle {
+        repo: opts["repo"],
+        branch: opts["branch"],
+        sha: opts["sha"],
+        toolchain: opts["toolchain"],
+        files: try bundle::collect(dir),
+    };
+    try bundle::write(b, opts["out"]);
+    println(f"{b.files.len()} files from {b.repo}@{b.branch} -> {opts["out"]}");
+}
+
+fn main() throws {
+    let args = env::args();
+    if args.len() < 3 { usage(); }
+    let dir = args[2];
+    if !fs::exists(dir) {
+        eprintln(f"error: `{dir}` does not exist");
+        env::exit(2);
+    }
+    if args[1] == "check" {
+        try run_check(dir, if args.len() > 3 { args[3] } else { "" });
+    } else if args[1] == "bundle" {
+        let rest: List<str> = List::new();
+        for i in 3..args.len() { rest.push(args[i]); }
+        try run_bundle(dir, rest);
+    } else {
+        usage();
+    }
+}

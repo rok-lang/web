@@ -1,0 +1,63 @@
+// A content bundle: every page of one branch of a content repository
+// (rok-lang/docs, rok-lang/www, rok-lang/spec) in one ROKON file, which
+// the site server loads as is. Only text goes in; images are served from
+// the web kit.
+
+use rok::std::fs;
+use rok::std::rokon;
+
+#[derive(Rokon)]
+pub struct Bundle {
+    /// `rok-lang/docs`.
+    pub repo: str;
+    /// `main` or `vX.Y.Z`.
+    pub branch: str;
+    pub sha: str;
+    /// The toolchain the code blocks were checked with.
+    pub toolchain: str;
+    /// Page path relative to the root (`learn/05-sum-types.md`) -> text.
+    pub files: Dict<str, str>;
+}
+
+/// Repository files that are not content.
+fn skipped(path: str) -> bool {
+    path.starts_with(".") || path.contains("/.")
+        || path == "README.md" || path == "CODE_OF_CONDUCT.md"
+        || path == "CONTRIBUTING.md" || path == "SECURITY.md"
+}
+
+fn wanted(path: str) -> bool {
+    !skipped(path) && (path.ends_with(".md") || path.ends_with(".rokon"))
+}
+
+/// The content files under `root`, keyed by their path below it.
+pub fn collect(root: str) throws -> Dict<str, str> {
+    let files: Dict<str, str> = Dict::new();
+    let base = if root.ends_with("/") { root } else { root + "/" };
+    for entry in fs::walk(root) {
+        let e = try entry.get();
+        if !e.is_file() { continue; }
+        let p = e.path().as_str();
+        if !p.starts_with(base) { continue; }
+        let rel = p[base.len():];
+        if wanted(rel) { files.insert(rel, try fs::read_to_str(p)); }
+    }
+    files
+}
+
+pub fn write(b: Bundle, out: str) throws {
+    try fs::write(out, rokon::to_string(b));
+}
+
+pub fn read(path: str) throws -> Bundle {
+    try rokon::from_str(try fs::read_to_str(path))
+}
+
+#[test]
+fn skips_repository_files() {
+    assert(wanted("learn/05-sum-types.md"), "a chapter");
+    assert(wanted("versions.rokon"), "the version list");
+    assert(!wanted("README.md"), "readme");
+    assert(!wanted(".github/CODEOWNERS"), "dot dir");
+    assert(!wanted("learn/img.png"), "binary");
+}

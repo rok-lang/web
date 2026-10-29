@@ -1,0 +1,4 @@
+Package {
+    name: "rok_content",
+    version: "0.1.0",
+}
