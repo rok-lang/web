@@ -33,13 +33,14 @@ fn wanted(path: str) -> bool {
 /// The content files under `root`, keyed by their path below it.
 pub fn collect(root: str) throws -> Dict<str, str> {
     let files: Dict<str, str> = Dict::new();
-    let base = if root.ends_with("/") { root } else { root + "/" };
+    let base = if root == "." { "" } else if root.ends_with("/") { root } else { root + "/" };
     for entry in fs::walk(root) {
         let e = try entry.get();
         if !e.is_file() { continue; }
         let p = e.path().as_str();
-        if !p.starts_with(base) { continue; }
-        let rel = p[base.len():];
+        let q = if p.starts_with("./") { p[2:] } else { p };
+        if !q.starts_with(base) { continue; }
+        let rel = q[base.len():];
         if wanted(rel) { files.insert(rel, try fs::read_to_str(p)); }
     }
     files
