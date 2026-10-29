@@ -4,6 +4,9 @@
 //   ```rok          build and run (the default)
 //   ```rok build    build only (servers, stdin readers, endless loops)
 //   ```rok norun    not checked (fragments, REPL sessions)
+//   ```text check=checks/x.rok
+//                   `rokc check` of that file prints these lines, in this
+//                   order (lines left out of the block are allowed)
 
 use rok::std::fs;
 use rok::std::process::{Command, ExitStatus, Stdio};
@@ -17,7 +20,8 @@ pub struct Snippet {
     /// 1-based line of the opening fence.
     pub line: usize;
     pub code: str;
-    /// `run`, `build` or `norun`.
+    /// `run`, `build`, `norun`, or `diag` (a ```text check=<file> block:
+    /// `code` is that file's path, `expect` the diagnostics).
     pub mode: str;
     pub expect: str | none;
 }
@@ -55,6 +59,10 @@ pub fn extract(page: str, text: str) -> List<Snippet> {
             i += 1;
         }
         i += 1;
+        if info.len() > 1 && info[0] == "text" && info[1].starts_with("check=") {
+            out.push(Snippet { page: page, line: start + 1, code: info[1]["check=".len():], mode: "diag", expect: body.to_str() });
+            continue;
+        }
         if info.len() == 0 || info[0] != "rok" { continue; }
         let mode = if info.len() > 1 { info[1] } else { "run" };
         let s = Snippet { page: page, line: start + 1, code: body.to_str(), mode: mode, expect: none };
@@ -115,9 +123,48 @@ fn first_lines(s: str, n: usize) -> str {
 }
 
 /// Check one snippet; a failure report, or `""`.
-fn check_one(rokc: str, dir: str, s: Snippet) -> str {
+fn check_one(rokc: str, root: str, dir: str, s: Snippet) -> str {
     let at = f"{s.page}:{s.line}";
+    if s.mode == "diag" { return try check_diag(rokc, root, dir, s, at) catch e { f"{at}: {e}\n" }; }
     try check_snippet(rokc, dir, s, at) catch e { f"{at}: {e}\n" }
+}
+
+/// The diagnostic lines of `rokc check` output, without the status lines
+/// and with `prefix` (the scratch directory) cut from paths.
+fn diag_lines(out: str, prefix: str) -> List<str> {
+    let ls: List<str> = List::new();
+    for l in out.replace(prefix, "").lines() {
+        let t = l.trim_start();
+        if t.starts_with("Checking ") || t.starts_with("Checked ") || t.starts_with("Finished ") { continue; }
+        ls.push(l.trim_end());
+    }
+    while ls.len() > 0 && ls[ls.len() - 1].is_empty() { ls.pop(); }
+    ls
+}
+
+/// Whether `want` is `got` with lines left out: the same first line, the
+/// rest in order.
+pub fn diag_matches(want: List<str>, got: List<str>) -> bool {
+    if want.len() == 0 || got.len() == 0 || want[0] != got[0] { return false; }
+    let k = 0usize;
+    for l in got {
+        if k < want.len() && l == want[k] { k += 1; }
+    }
+    k == want.len()
+}
+
+fn check_diag(rokc: str, root: str, dir: str, s: Snippet, at: str) throws -> str {
+    let name = file_name(s);
+    let sub = f"{dir}/{name}".replace("//", "/");
+    try fs::create_dir_all(sub);
+    try fs::write(f"{sub}/main.rok", try fs::read_to_str(root + "/" + s.code));
+    try run(rokc, ["check", f"{sub}/main.rok"], dir, name, Duration::sec(60));
+    let got = diag_lines((try fs::read_to_str(f"{dir}/{name}.err")) + (try fs::read_to_str(f"{dir}/{name}.out")), sub + "/");
+    let want = diag_lines(s.expect ?? "", "");
+    if diag_matches(want, got) { return ""; }
+    let shown = StrBuf::new();
+    for l in got { shown.push_str(l + "\n"); }
+    f"{at}: {s.code}: rokc check prints something else\n  documented:\n{first_lines(s.expect ?? "", 12)}  got:\n{first_lines(shown.to_str(), 12)}"
 }
 
 fn check_snippet(rokc: str, dir: str, s: Snippet, at: str) throws -> str {
@@ -139,13 +186,13 @@ fn check_snippet(rokc: str, dir: str, s: Snippet, at: str) throws -> str {
 }
 
 /// Check `snips` in parallel; the failure reports.
-pub fn check_all(rokc: str, dir: str, snips: List<Snippet>) throws -> List<str> {
+pub fn check_all(rokc: str, root: str, dir: str, snips: List<Snippet>) throws -> List<str> {
     try fs::create_dir_all(dir);
     let todo: List<Snippet> = List::new();
     for s in snips {
         if s.mode != "norun" { todo.push(s); }
     }
-    let reports = par::map(todo, |s: Snippet| check_one(rokc, dir, s));
+    let reports = par::map(todo, |s: Snippet| check_one(rokc, root, dir, s));
     let bad: List<str> = List::new();
     for r in reports {
         if !r.is_empty() { bad.push(r); }
@@ -161,4 +208,12 @@ fn extracts_blocks() {
     assert(ss[0].mode == "run" && ss[0].line == 3 && (ss[0].expect ?? "") == "a\n", "run + output");
     assert(ss[1].mode == "build" && ss[1].code == "let s = \"```\";\n", "longer fence");
     assert(ss[2].mode == "norun" && ss[2].expect is none, "norun");
+}
+
+#[test]
+fn diagnostics_allow_left_out_lines() {
+    let got = ["error[E1]: x", "  --> main.rok:1:1", "   |", "   = help: y"];
+    assert(diag_matches(["error[E1]: x", "   = help: y"], got), "elided location");
+    assert(!diag_matches(["error[E1]: z"], got), "first line differs");
+    assert(!diag_matches(["error[E1]: x", "   = help: w"], got), "help differs");
 }

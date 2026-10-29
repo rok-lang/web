@@ -1,7 +1,8 @@
 // rok-content: check and bundle a content repository for the Rok sites.
 //
 //   rok-content check <dir> [filter]
-//       run every ```rok block under <dir> with $ROKC (default rokc);
+//       run every ```rok block under <dir> with $ROKC (default rokc) and
+//       compare every ```text check=<file> block with `rokc check <file>`;
 //       exit 1 if one fails or its output differs
 //   rok-content bundle <dir> --repo <r> --branch <b> --sha <s>
 //                      --toolchain <v> --out <file>
@@ -26,13 +27,14 @@ fn run_check(dir: str, filter: str) throws {
         if path.ends_with(".md") && path.contains(filter) { snips.extend(check::extract(path, text)); }
     }
     let rokc = try env::var("ROKC") catch _ { "rokc" };
-    let bad = try check::check_all(rokc, env::temp_dir().as_str() + "/rok-content-snippets", snips);
+    let bad = try check::check_all(rokc, dir, env::temp_dir().as_str() + "/rok-content-snippets", snips);
     let run = 0usize;
+    let diag = 0usize;
     for s in snips {
-        if s.mode != "norun" { run += 1; }
+        if s.mode == "diag" { diag += 1; } else if s.mode != "norun" { run += 1; }
     }
     for b in bad { eprint(f"code block: {b}"); }
-    println(f"{run} code blocks checked ({snips.len() - run} norun), {bad.len()} failing");
+    println(f"{run} code blocks and {diag} diagnostics checked ({snips.len() - run - diag} norun), {bad.len()} failing");
     if bad.len() > 0 { env::exit(1); }
 }
 
