@@ -1,21 +1,17 @@
-// A content bundle: every page of one branch of a content repository
-// (rok-lang/docs, rok-lang/www, rok-lang/spec) in one ROKON file, which
-// the site server loads as is. Only text goes in; images are served from
-// the web kit.
+// One branch of a content repo (docs, www, spec) as one ROKON file.
+// Text only; images come from the web kit.
 
 use rok::std::fs;
 use rok::std::rokon;
 
 #[derive(Rokon)]
 pub struct Bundle {
-    /// `rok-lang/docs`.
     pub repo: str;
-    /// `main` or `vX.Y.Z`.
     pub branch: str;
     pub sha: str;
-    /// The toolchain the code blocks were checked with.
+    /// Toolchain the code blocks were checked with.
     pub toolchain: str;
-    /// Page path relative to the root (`learn/05-sum-types.md`) -> text.
+    /// Path below the root -> text.
     pub files: Dict<str, str>;
 }
 
@@ -30,7 +26,7 @@ fn wanted(path: str) -> bool {
     !skipped(path) && (path.ends_with(".md") || path.ends_with(".rokon"))
 }
 
-/// The content files under `root`, keyed by their path below it.
+/// Content files under `root`, keyed by path below it.
 pub fn collect(root: str) throws -> Dict<str, str> {
     let files: Dict<str, str> = Dict::new();
     let base = if root == "." { "" } else if root.ends_with("/") { root } else { root + "/" };
