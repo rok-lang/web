@@ -222,10 +222,11 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 | `.side`, `.side .no`, `.toc`, `.prose` | docs shell: chapter sidebar with numbers, on-this-page list, article column |
 | `.kv`, `.tbl` | key / value list and data table |
 | `.ic` | inline code |
+| `.social` | brand icon links (GitHub, X, Bluesky, Mastodon), each with an `aria-label` |
 
 ## Rules
 
-- Use a token for every colour. A literal colour in a site stylesheet is a bug, except `--mark` in the logo files.
+- Use a token for every colour. A literal colour in a site stylesheet is a bug, with two exceptions: `--mark` in the logo files, and the rokstones stone glyphs, whose hue is derived from the stone's name (`oklch(0.7 0.11 h)` light, `oklch(0.78 0.09 h)` dark) so every stone keeps its own colour.
 - Every text colour passes 4.5:1 on its surface in both themes (see the contrast table).
 - No gradients, no glow, no tinted pills behind headings or labels, no caps mono labels outside `.t-eyebrow`.
 - The marks are always `#f9a8d4`, on any ground, with no box behind them.
