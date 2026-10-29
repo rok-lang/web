@@ -62,7 +62,8 @@ All colours are written in OKLCH: `oklch(L C h)` with lightness `L` from 0 to 1,
 | `--link` | links, and types in prose | buttons |
 | `--btn` / `--btn-ink` | the one primary action on a screen | secondary actions (use `.btn-2`) |
 | `--note-bg` / `--note-line` / `--note-ink` | note callouts and "Added in" markers | general emphasis |
-| `--mark` | the Rok and rokstones marks and the focus ring | text of any kind (1.75:1 on the light ground) |
+| `--mark` | the Rok and rokstones marks | text or focus rings (1.75:1 on the light ground) |
+| `--focus` | the focus ring: deep rose on light, the mark pink on dark | anything else |
 
 ### Values
 
@@ -164,10 +165,12 @@ Terminal transcripts (`.term`) reproduce rokc's own colours. On a dark terminal 
 
 | Variable | Stack | Features |
 |---|---|---|
-| `--sans` | Geist, Pretendard, system-ui | `ss01`, `cv11` |
-| `--mono` | Geist Mono, Pretendard, ui-monospace | `zero` (slashed zero), `ss01` |
+| `--sans` | Geist, Pretendard Variable, system-ui | `ss01`, `cv11` |
+| `--mono` | Geist Mono, Pretendard Variable, ui-monospace | `zero` (slashed zero), `ss01` |
 
 Korean text (`:lang(ko)` or `.ko`) switches to Pretendard first, with a line height of 1.75 and tracking of -0.005em: Hangul needs more leading than Latin and looks loose at Geist's tracking. Pretendard also follows Geist in the Latin stacks, so a Korean word inside English text renders in a matching face.
+
+Sites load Geist and Geist Mono from Google Fonts and Pretendard from its dynamic-subset stylesheet on jsDelivr (`pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`), which names the family `Pretendard Variable`; `Pretendard` stays in the stacks for a locally installed copy.
 
 Weights are 400, 500 and 600 only. There is no bold 700.
 
@@ -226,7 +229,7 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 - Every text colour passes 4.5:1 on its surface in both themes (see the contrast table).
 - No gradients, no glow, no tinted pills behind headings or labels, no caps mono labels outside `.t-eyebrow`.
 - The marks are always `#f9a8d4`, on any ground, with no box behind them.
-- Focus is a 2px `--mark` outline with a 2px offset on every focusable element.
+- Focus is a 2px `--focus` outline with a 2px offset on every focusable element; it is 5.9:1 on the light ground and 10.9:1 on the dark one, above the 3:1 WCAG asks of focus indicators.
 - One type scale for every site; a site never overrides tracking or line height of a step.
 
 ## Changing a token
