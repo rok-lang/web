@@ -10,7 +10,9 @@ Every page has one root element with the class `rk` and exactly one of `lt` (lig
 <html class="rk lt">
 ```
 
-`.rk` sets `color-scheme: light`, `.rk.dk` sets `color-scheme: dark`. Each colour token is a single `light-dark(<light>, <dark>)` pair, and the browser picks the side that matches the element's `color-scheme`. A theme is therefore one class, not a second stylesheet, and the two values of a token can never drift apart because they sit in one declaration.
+`.rk` defines every colour token with its light value and sets `color-scheme: light`; `.rk.dk` redefines the same tokens with their dark values and sets `color-scheme: dark`. A theme is therefore one class, not a second stylesheet.
+
+The tokens are plain hex values, not `light-dark()`. A browser without `light-dark()` (Safari and iOS before 17.5, so every in-app browser on those iOS versions, Samsung Internet before 27, Chrome before 123, Firefox before 120) treats such a custom property as invalid at computed time, which leaves the whole page without colours; a fallback declaration cannot help, because custom properties accept any value. Two blocks of plain values work everywhere.
 
 Light and dark are two separately designed palettes, not an inversion of each other:
 
@@ -41,7 +43,7 @@ The toggle writes `localStorage.theme` (inside `try`, storage can be unavailable
 
 ## Colour
 
-All colours are written in OKLCH: `oklch(L C h)` with lightness `L` from 0 to 1, chroma `C`, and hue `h` in degrees. Lightness in OKLCH is perceptual, so two tokens with the same `L` look equally light whatever their hue, which is what lets the pink, sky, green and amber of the syntax sit at the same visual weight. Neutrals carry a chroma of 0.002 to 0.015 so they are faintly cool, never flat grey.
+Colours are designed in OKLCH, `oklch(L C h)` with lightness `L` from 0 to 1, chroma `C`, and hue `h` in degrees, and shipped as their sRGB hex rendering. Lightness in OKLCH is perceptual, so two tokens with the same `L` look equally light whatever their hue, which is what lets the pink, sky, green and amber of the syntax sit at the same visual weight. Neutrals carry a chroma of 0.002 to 0.015 so they are faintly cool, never flat grey.
 
 ### Roles
 
@@ -67,7 +69,7 @@ All colours are written in OKLCH: `oklch(L C h)` with lightness `L` from 0 to 1,
 
 ### Values
 
-The hex columns are the sRGB rendering of each OKLCH value, for tools that cannot read OKLCH.
+Each cell is the OKLCH design value and the hex that `rok.css` ships.
 
 | Token | Light | Dark |
 |---|---|---|
@@ -130,7 +132,7 @@ When a token changes, recompute this table. A value that drops below 4.5:1 on a 
 
 ### Mixed colours
 
-`color-mix(in oklch, ...)` derives a colour from existing tokens instead of adding a new one:
+`color-mix(in oklch, ...)` derives a colour from existing tokens instead of adding a new one. It sits inside `@supports (color: color-mix(in oklch, red, blue))`, because a `var()` inside an unsupported `color-mix()` fails at computed time too; without it the highlighted line falls back to `--acc-bg` and the help callout border to `--acc`:
 
 - highlighted code line: `--acc` at 10% over the code ground, with a 2px `--acc` rule on the left
 - help callout border: `--acc` at 35% into `--line`
@@ -226,6 +228,7 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 
 ## Rules
 
+- No `light-dark()`, and no other colour function outside an `@supports` guard: the sites must keep their colours on iOS 16, Samsung Internet 25 and Android WebViews that lag behind.
 - Use a token for every colour. A literal colour in a site stylesheet is a bug, with two exceptions: `--mark` in the logo files, and the rokstones stone glyphs, whose hue is derived from the stone's name (`oklch(0.7 0.11 h)` light, `oklch(0.78 0.09 h)` dark) so every stone keeps its own colour.
 - Every text colour passes 4.5:1 on its surface in both themes (see the contrast table).
 - No gradients, no glow, no tinted pills behind headings or labels, no caps mono labels outside `.t-eyebrow`.
@@ -237,7 +240,7 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 
 ## Changing a token
 
-1. Change the `light-dark()` pair in `css/rok.css`. Never split it into two rules.
+1. Pick the OKLCH value, convert it to hex, and change the token in both the `.rk` and the `.rk.dk` block of `css/rok.css`.
 2. Recompute the values and contrast tables above and fix any pair below 4.5:1.
 3. Update the Tokens board on the design canvas so the reference matches.
 4. Tag a release of this repository. Sites pin a tag, so the change reaches all of them when they move to it.
