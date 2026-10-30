@@ -40,7 +40,7 @@ Load it blocking in `<head>`, right after `<meta name="theme-color">`, so it set
 
 Once the page is parsed it wires two controls, whose markup `chrome.rok` writes:
 
-- the header toggle, `<button class="ib theme" aria-label="Dark theme" aria-pressed="false">` with a moon and a sun icon. Its name stays "Dark theme"; `aria-pressed` says whether dark is on and the `title` names the action (`Switch to light theme`).
+- the header toggle, `<button class="ib theme" aria-label="Dark theme" aria-pressed="false">` with a moon and a sun icon. Its name stays "Dark theme"; `aria-pressed` says whether dark is on and the `title` names the action (`Switch to light theme`). A click flips to the other theme; when that is the system's own theme it stores System instead of the theme, so the two controls never disagree and the footer switch shows System again.
 - the footer switch, `.seg` with three buttons `data-theme-set="auto"`, `"light"` and `"dark"` (System, Light, Dark), the current one `aria-pressed="true"`.
 
 A choice writes the cookie and `localStorage.theme` (System deletes both) and swaps `lt` / `dk`; `<meta name="theme-color">` follows the resolved `--bg`. The page follows the system setting while on System, and re-reads the choice when it is shown again (another site of the domain may have changed it). Nothing else changes: every colour follows from the class. Without scripts the class stays `rk lt` and both controls are hidden (`html.rk:not(.js)`).
@@ -62,7 +62,8 @@ Colours are designed in OKLCH, `oklch(L C h)` with lightness `L` from 0 to 1, ch
 | `--ink-2` | secondary text: leads, descriptions, inactive nav | long body text |
 | `--ink-3` | meta: dates, labels, counts, captions | anything a reader must read to proceed |
 | `--line` | hairlines between regions, table rules | control borders |
-| `--line-2` | borders of controls (inputs, buttons, kbd), separators inside the brand | regions |
+| `--line-2` | decorative borders of controls whose text or icon names them (buttons, `.ib`, `.kbd`, `.chip`), separators inside the brand | form field edges (use `--field-line`) |
+| `--field-line` | the edge of a form field: `.search`, inputs, selects, textareas, and the pressed state of `.seg`; 3:1 or more on every ground (WCAG 1.4.11) | hairlines and decoration |
 | `--acc` | the active state: current page, selected tab, highlighted line | links, decoration |
 | `--acc-bg` | ground behind an active sidebar item and help callouts | headings or labels (no tinted pills behind text) |
 | `--link` | links, and types in prose | buttons |
@@ -87,6 +88,7 @@ Each cell is the OKLCH design value and the hex that `rok.css` ships.
 | `--ink-3` | `oklch(0.53 0.015 275)` #696b75 | `oklch(0.6 0.012 275)` #7e8088 |
 | `--line` | `oklch(0.92 0.004 286)` #e4e4e7 | `oklch(0.25 0.008 270)` #202126 |
 | `--line-2` | `oklch(0.86 0.006 286)` #d0d0d5 | `oklch(0.32 0.01 270)` #313338 |
+| `--field-line` | `oklch(0.62 0.012 286)` #85858d | `oklch(0.52 0.012 270)` #666970 |
 | `--acc` | `oklch(0.52 0.19 357)` #b6226a | `oklch(0.83 0.1 350)` #f9add0 |
 | `--acc-bg` | `oklch(0.96 0.025 350)` #ffebf4 | `oklch(0.24 0.045 350)` #2f1622 |
 | `--link` | `oklch(0.5 0.13 240)` #006aa5 | `oklch(0.83 0.1 225)` #7ad5f8 |
@@ -132,7 +134,17 @@ Every text token meets WCAG 2.x AA (4.5:1) on every surface it is used on, in bo
 | `--cli-amber` | `--term` | 4.92 | 10.25 |
 | `--ink-3` | `--term` | 5.29 | 5.18 |
 
-When a token changes, recompute this table. A value that drops below 4.5:1 on a surface it is used on is a bug.
+Non-text contrast (WCAG 1.4.11) asks 3:1 of the edge that identifies a form field. `--line-2` is a hairline (1.39 to 1.57:1) and cannot carry that, so fields use `--field-line`:
+
+| Edge | On | Light | Dark |
+|---|---|---|---|
+| `--field-line` | `--bg` | 3.54 | 3.60 |
+| `--field-line` | `--bg-2` | 3.30 | 3.46 |
+| `--field-line` | `--panel` | 3.66 | 3.32 |
+| `--field-line` | `--code` | 3.36 | 3.48 |
+| `--focus` | `--bg` | 5.92 | 10.9 |
+
+When a token changes, recompute these tables. A text value below 4.5:1, or a field edge below 3:1, on a surface it is used on is a bug.
 
 ### Mixed colours
 
@@ -171,14 +183,35 @@ Terminal transcripts (`.term`) reproduce rokc's own colours. On a dark terminal 
 
 | Variable | Stack | Features |
 |---|---|---|
-| `--sans` | Geist, Geist Fallback, Geist Fallback Roboto, Pretendard Variable, system-ui | `ss01`, `cv11` |
-| `--mono` | Geist Mono, Geist Mono Fallback, Geist Mono Fallback Consolas, Pretendard Variable, ui-monospace | `zero` (slashed zero), `ss01` |
+| `--sans` | Geist, Geist Fallback, Geist Fallback Roboto, system-ui | `ss01`, `cv11` |
+| `--mono` | Geist Mono, Geist Mono Fallback, Geist Mono Fallback Consolas, ui-monospace | `zero` (slashed zero), `ss01` |
 
-The Fallback families are local fonts (Arial or Helvetica, Roboto, Menlo, Consolas; Liberation on Linux) with `size-adjust` and ascent / descent overrides measured against Geist, so text keeps its line breaks when the webfonts swap in. They cover Latin only; other scripts fall through to Pretendard.
+The Fallback families are local fonts (Arial or Helvetica, Roboto, Menlo, Consolas; Liberation on Linux) with `size-adjust` and ascent / descent overrides measured against Geist, so text keeps its line breaks when the webfonts swap in. They cover Latin only; other scripts fall through to the system's fonts.
 
-Korean text (`:lang(ko)` or `.ko`) switches to Pretendard first, with a line height of 1.75 and tracking of -0.005em: Hangul needs more leading than Latin and looks loose at Geist's tracking. Code inside Korean text (`pre`, `code`, `kbd`, `.mono` and everything in `pre` / `code`) keeps the mono face, no tracking and its own line height: 22px in code blocks, 21px in terminals. Pretendard also follows Geist in the Latin stacks, so a Korean word inside English text renders in a matching face.
+Korean text (`:lang(ko)` or `.ko`) switches to Pretendard first, with a line height of 1.75 and tracking of -0.005em: Hangul needs more leading than Latin and looks loose at Geist's tracking. Under `:lang(ko)` both stacks also gain Pretendard Variable after Geist, so `var(--sans)` and `var(--mono)` render Hangul in it. Code inside Korean text (`pre`, `code`, `kbd`, `.mono` and everything in `pre` / `code`) keeps the mono face, no tracking and its own line height: 22px in code blocks, 21px in terminals. Pretendard is for Korean only: a Hangul word in an English page needs `lang="ko"` on its element to get it.
 
-Sites load Geist and Geist Mono from Google Fonts, preloading the two Latin files, and Pretendard from its dynamic-subset stylesheet on jsDelivr (`pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`), which names the family `Pretendard Variable`; `Pretendard` stays in the stacks for a locally installed copy. `chrome::fonts()` writes those `<head>` lines.
+### Webfonts
+
+The kit hosts the fonts itself; no page asks Google Fonts or jsDelivr for anything. The files live in `assets/fonts/` here (`web/assets/fonts` in a site, `kit::FONTS_DIR`) and are published under `fonts/` beside `rok.css`. They are not built into the program like `kit::files()`: 3 MB of `include_bytes!` makes rokc crawl. The public names:
+
+| Public path | What | Source |
+|---|---|---|
+| `fonts/Geist-Variable.woff2` | Geist, weights 100 to 900 | npm `geist` 1.8.2, OFL-1.1 |
+| `fonts/GeistMono-Variable.woff2` | Geist Mono, weights 100 to 900 | npm `geist` 1.8.2, OFL-1.1 |
+| `fonts/pretendard.css` | 92 `@font-face` rules for `Pretendard Variable`, each with its `unicode-range` | npm `pretendard` 1.3.9, OFL-1.1, the dynamic subset |
+| `fonts/pretendard/PretendardVariable.subset.N.woff2` | the 92 slices; a browser fetches only those its text needs | same |
+| `fonts/LICENSE-Geist.txt`, `fonts/LICENSE-Pretendard.txt` | the licences | |
+
+Every face is `font-display: swap`. `rok.css` declares the two Geist faces with `url("fonts/...")`, which resolves against the stylesheet, so the fonts go wherever `rok.css` goes. `pretendard.css` is a separate stylesheet (47 KB of ranges, too much for every English page). `chrome::fonts_in(root, ko)` writes the `<head>` lines: a `<link rel="preload" ... crossorigin>` for each Geist file and, when `ko`, the Pretendard stylesheet; pass the same `root` as `rok.css`, so a preload and the stylesheet's request are one URL. `chrome::fonts()` is `fonts_in("/", true)`.
+
+A site serves them like this:
+
+- a generator calls `kit::copy_fonts(kit::FONTS_DIR, out + "/fonts")` beside writing `kit::files()`: it copies the tree (not the README), makes the directories and returns the names written, for a link check;
+- a server that answers from memory (the playground) serves `/fonts/<rest>` from `http::static_file(kit::FONTS_DIR, "/" + rest)`, or its deploy copies the directory next to the binary and points there; `Content-Type` from `http::content_type` (`font/woff2`, `text/css`);
+- fonts never change under one name within a kit version; serve them with `http::REVALIDATE` and an `http::etag`, or for a year if the site's caching allows;
+- the CSP needs `font-src 'self'` and `style-src 'self'` only.
+
+Until a site publishes `fonts/`, Geist falls back to the metric-matched local faces above.
 
 Weights are 400, 500 and 600 only. There is no bold 700.
 
@@ -214,7 +247,7 @@ Do not invent sizes between the steps. If a design seems to need one, it needs a
 | 8px | inputs (`.search`), icon buttons (`.ib`) |
 | 10px to 12px | popovers and grouped panels |
 
-Borders are 1px: `--line` between regions, `--line-2` on controls. The only shadows are on popovers and tooltips, which float above the page. Spacing follows a 4px grid. The header is 60px high and page content sits in `.frame`, at most 1160px wide.
+Borders are 1px: `--line` between regions, `--line-2` on buttons and other controls named by their text, `--field-line` on form fields. The only shadows are on popovers and tooltips, which float above the page. Spacing follows a 4px grid. The header is 60px high and page content sits in `.frame`, at most 1160px wide.
 
 ## Components
 
@@ -250,7 +283,10 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 - Focus is a 2px `--focus` outline with a 2px offset on every focusable element; it is 5.9:1 on the light ground and 10.9:1 on the dark one, above the 3:1 WCAG asks of focus indicators.
 - One type scale for every site; a site never overrides tracking or line height of a step.
 - Inputs, selects and textareas are 16px below 768px: iOS Safari zooms the page into any smaller field on focus.
-- Theme: the header button flips light and dark, the footer offers System, Light and Dark, both driven by `js/theme.js` (see Choosing the theme). A site never carries its own copy.
+- A form field's edge is `--field-line`, never `--line-2` or `--line`: it must reach 3:1 on its ground.
+- Theme: the header button flips light and dark (back to the system's theme it picks System), the footer offers System, Light and Dark, both driven by `js/theme.js` (see Choosing the theme). A site never carries its own copy.
+- Print: paper is always light (the `.rk.dk` block sits in `@media not print`), the footer, the skip link, Copy buttons and the theme controls are hidden, and every outside link (`http...`) in `<main>` prints its address after it. A site hides its own header, sidebars and heading anchors.
+- The footer's Security link is `chrome::SECURITY`, https://github.com/rok-lang/rok/security/policy, on every site: one policy for the toolchain, the stones and the sites.
 - Search: `/`, Ctrl+K and Cmd+K focus the search field (`js/keys.js`, by key code, so Caps Lock and a Korean IME do not stop it); the field lists them in `aria-keyshortcuts`.
 
 ## Changing a token
@@ -259,3 +295,26 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 2. Recompute the values and contrast tables above and fix any pair below 4.5:1.
 3. Update the Tokens board on the design canvas so the reference matches.
 4. Push it to main here. Each site pins this repository as its `web/` submodule, so the change reaches a site when it bumps the submodule (`git submodule update --remote web`, then commit).
+
+## Caching
+
+`http` has the helpers a server needs for fingerprinted assets and revalidated pages; they are optional, and a site that does its own keeps working:
+
+| Helper | What it gives |
+|---|---|
+| `http::version(data)` | the fingerprint, 10 hex digits of SHA-256 (`data` is bytes or text) |
+| `http::versioned(url, data)` | `url?v=<fingerprint>`, for `href` and `src` in pages: `http::versioned("/rok.css", kit::ROK_CSS)` |
+| `http::is_current(query, data)` | whether the request's query names the current fingerprint |
+| `http::IMMUTABLE` | `Cache-Control: public, max-age=31536000, immutable`, for a file asked for by its current `?v=` |
+| `http::REVALIDATE` | `Cache-Control: no-cache`, for pages and for a stale or missing `?v=` |
+| `http::etag(data)` | a strong ETag, 16 hex digits of SHA-256, quoted |
+| `http::not_modified(r, tag)` | whether a GET or HEAD holds `tag` (`If-None-Match`, weak comparison, `*`) |
+
+`http::send` answers 304 without a body or `Content-Length`. A file answer then reads:
+
+```rok
+let tag = http::etag(data);
+let cc = if http::is_current(r.query, data) { http::IMMUTABLE } else { http::REVALIDATE };
+if http::not_modified(r, tag) { try http::send(s, 304, [cc, f"ETag: {tag}"], "", r.method == "HEAD"); return; }
+try http::send(s, 200, [f"Content-Type: {http::content_type(name)}", cc, f"ETag: {tag}"], data, r.method == "HEAD");
+```

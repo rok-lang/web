@@ -1,7 +1,10 @@
 // The kit's files as a site publishes them, built into the program: the
 // stylesheet, the scripts, the mark and the icons. A generator writes them
 // into its output, a server answers with them; either way their public
-// names stay what pages and link previews already point at.
+// names stay what pages and link previews already point at. The webfonts
+// stay files (FONTS_DIR).
+
+use rok::std::fs;
 
 /// Whose mark a site wears: rok-lang.org, the docs and the playground
 /// wear Rok's, rokstones.io its own. It picks logo.svg, favicon.ico and
@@ -48,6 +51,29 @@ pub fn files(mark: Mark) -> List<File> {
     all
 }
 
+/// Where the webfonts are in a site's checkout: the kit is its `web/`
+/// submodule. They are files, not built in (3 MB): Geist, Geist Mono,
+/// Pretendard's stylesheet and its slices, and their licences, published
+/// as `fonts/` beside rok.css.
+pub const FONTS_DIR: str = "web/assets/fonts";
+
+/// Copy every file under `from` (FONTS_DIR) into `to` (`<out>/fonts`),
+/// making the directories; the names written, relative to `to`.
+pub fn copy_fonts(from: str, to: str) throws -> List<str> {
+    let names: List<str> = List::new();
+    for entry in fs::walk(from) {
+        let e = try entry.get();
+        if !e.is_file() { continue; }
+        let name = e.path().as_str()[from.len() + 1:].replace("\\", "/");
+        if name.ends_with(".md") { continue; }
+        let dest = to + "/" + name;
+        if let at: usize = dest.rfind("/") { try fs::create_dir_all(dest[:at]); }
+        try fs::copy(e.path(), dest);
+        names.push(name);
+    }
+    names
+}
+
 /// The kit's file published as `name` (`rok.css`, no leading slash), or none.
 pub fn find(mark: Mark, name: str) -> File | none {
     for f in files(mark) {
@@ -67,4 +93,20 @@ fn marks() {
     assert(css.data.len() == ROK_CSS.len() && ROK_CSS.starts_with("/*"), "rok.css");
     assert(find(Mark::Rok, "style.css") is none && find(Mark::Rok, "/rok.css") is none, "kit files only, by name");
     for f in files(Mark::Rokstones) { assert(f.data.len() > 0, f.name); }
+}
+
+#[test]
+fn webfonts() {
+    let out = "target/webfonts-test";
+    let names = try copy_fonts("../assets/fonts", out) catch e { panic(f"copy_fonts: {e}"); };
+    assert(names.len() == 97, f"{names.len()} font files");
+    let css = try fs::read_to_str(out + "/pretendard.css") catch _ { panic("no pretendard.css"); };
+    for n in names {
+        let data = try fs::read(out + "/" + n) catch _ { panic(n); };
+        assert(data.len() > 0, n);
+        // woff2 signature
+        if n.ends_with(".woff2") { assert(data[0] == 0x77u8 && data[1] == 0x4fu8 && data[2] == 0x46u8 && data[3] == 0x32u8, n); }
+        if n.starts_with("pretendard/") { assert(css.contains(f"url(\"{n}\")"), n); }
+    }
+    assert(ROK_CSS.contains("url(\"fonts/Geist-Variable.woff2\")") && ROK_CSS.contains("url(\"fonts/GeistMono-Variable.woff2\")"), "rok.css faces");
 }

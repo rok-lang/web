@@ -8,30 +8,29 @@ pub fn esc(s: str) -> str {
     s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 }
 
-/// The Geist families rok.css asks for. Korean text falls back to
-/// Pretendard.
-pub const FONTS: str = "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap";
-/// The Latin files FONTS serves (one variable file per family), fetched
-/// with the stylesheet rather than after it so the text does not reflow
-/// when they land. Update them with FONTS: an outdated URL only costs a
-/// wasted request.
-pub const FONT_FILES: [str; 2] = ["https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwcGFWNOITd.woff2", "https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrcdmhHkjko.woff2"];
-pub const PRETENDARD: str = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css";
+/// The webfonts (kit::FONTS_DIR, published as fonts/), from the site root: the two Geist files
+/// rok.css asks for on every page, preloaded so the text does not reflow
+/// when they land, and Pretendard's stylesheet, which only Korean text
+/// uses.
+pub const FONT_FILES: [str; 2] = ["fonts/Geist-Variable.woff2", "fonts/GeistMono-Variable.woff2"];
+pub const PRETENDARD: str = "fonts/pretendard.css";
 
 /// theme.js, blocking: it must run before the first paint. `root` leads
 /// to the site root (`/`, or `../` from a page one level down). Put it
 /// right after `<meta name="theme-color">`.
 pub fn theme_script(root: str) -> str { f"<script src=\"{root}theme.js\"></script>\n" }
 
-/// The font preconnects, preloads and stylesheets.
-pub fn fonts() -> str {
-    f"<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
-<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
-<link rel=\"preload\" href=\"{FONT_FILES[0]}\" as=\"font\" type=\"font/woff2\" crossorigin>
-<link rel=\"preload\" href=\"{FONT_FILES[1]}\" as=\"font\" type=\"font/woff2\" crossorigin>
-<link rel=\"stylesheet\" href=\"{esc(FONTS)}\">
-<link rel=\"stylesheet\" href=\"{PRETENDARD}\">
-"
+/// The font preloads and Pretendard's stylesheet, from `/`.
+pub fn fonts() -> str { fonts_in("/", true) }
+
+/// fonts() from `root` (the same root as rok.css, so a preload and the
+/// stylesheet's request are one URL); Pretendard's stylesheet only if
+/// the page holds Korean text (`ko`).
+pub fn fonts_in(root: str, ko: bool) -> str {
+    let b = StrBuf::new();
+    for f in FONT_FILES { b.push_str(f"<link rel=\"preload\" href=\"{root}{f}\" as=\"font\" type=\"font/woff2\" crossorigin>\n"); }
+    if ko { b.push_str(f"<link rel=\"stylesheet\" href=\"{root}{PRETENDARD}\">\n"); }
+    b.to_str()
 }
 
 /// The kit's icons (kit.rok names them), under `root`.
@@ -104,6 +103,9 @@ pub fn not_found(title: str, sentence: str, links: List<(str, str)>) -> str {
 pub const MADE_BY: str = "<span>Made by <a href=\"https://daminstudio.com\">DaminStudio</a></span>";
 pub const MADE_BY_KO: str = "<span>제작 <a href=\"https://daminstudio.com\">DaminStudio</a></span>";
 pub const LICENSE: str = "MIT OR Apache-2.0";
+/// The footer's Security link on every Rok site: one policy, the rok
+/// repository's, for the toolchain, the stones and the sites.
+pub const SECURITY: str = "https://github.com/rok-lang/rok/security/policy";
 
 /// A Copy button: copy.js puts `text` on the clipboard and says so.
 pub fn copy_button(text: str, ko: bool) -> str {
@@ -173,7 +175,9 @@ fn pieces() {
     let nav = sites_nav(Sites { home: "https://rok-lang.org", docs: "/latest", stones: "https://rokstones.io", playground: "https://playground.rok-lang.org", current: "docs" });
     assert(nav.contains("<a href=\"/latest\" aria-current=\"page\">Docs</a>") && count(nav, "aria-current") == 1, "current site");
     assert(theme_script("../").contains("src=\"../theme.js\"") && icons("/").contains("href=\"/favicon.ico\""), "head");
-    assert(fonts().contains("&amp;family=Geist+Mono"), "fonts escaped");
+    assert(fonts().contains("<link rel=\"preload\" href=\"/fonts/Geist-Variable.woff2\" as=\"font\" type=\"font/woff2\" crossorigin>") && fonts().contains("href=\"/fonts/pretendard.css\""), "fonts");
+    let en = fonts_in("../", false);
+    assert(en.contains("href=\"../fonts/GeistMono-Variable.woff2\"") && !en.contains("pretendard") && !en.contains("https:"), "fonts, english, self-hosted");
 }
 
 #[test]

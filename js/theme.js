@@ -2,7 +2,8 @@
 // after <meta name="theme-color">: it sets <html class="rk lt|dk js">
 // before the first paint (a file, not inline, so a strict CSP allows it),
 // then wires the header toggle (.ib.theme) and the footer switch
-// ([data-theme-set="auto|light|dark"]).
+// ([data-theme-set="auto|light|dark"]). The toggle flips light and dark;
+// landing on the system's theme it picks System.
 //
 // The choice is the `theme` cookie, else localStorage.theme, else the
 // system setting. The cookie is set for the site's domain (.rok-lang.org
@@ -76,7 +77,12 @@
     }
     var tb = document.querySelectorAll(".ib.theme");
     for (var j = 0; j < tb.length; j++) {
-      tb[j].addEventListener("click", function () { choose(html.classList.contains("dk") ? "light" : "dark"); });
+      // The other theme; back to the system's own, it is System again, so
+      // the footer switch never loses it.
+      tb[j].addEventListener("click", function () {
+        var t = html.classList.contains("dk") ? "light" : "dark";
+        choose(t === (media.matches ? "dark" : "light") ? "auto" : t);
+      });
     }
     apply();
   }
