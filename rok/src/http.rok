@@ -1,12 +1,14 @@
 // HTTP/1.1 for the Rok sites' servers: one request per connection
 // (`Connection: close`), bounded head, body and time; forms, cookies,
-// static files.
+// static files, and the caching helpers (fingerprints, ETags).
 
 use rok::std::fs;
 use rok::std::net::TcpStream;
 use rok::std::io::{AsBytes, byte_buf};
 use rok::std::time::Duration;
 use rok::core::task::time::Instant;
+use rok::core::crypto::HashAlgorithm;
+use rok::core::encoding::hex_encode;
 
 pub const MAX_HEAD: usize = 16384;
 pub const MAX_BODY: usize = 1048576;
@@ -165,6 +167,7 @@ pub fn read_request(s: TcpStream, max_body: usize, limit: Duration) throws (Http
 pub fn reason(status: i32) -> str {
     match status {
         200 => "OK",
+        304 => "Not Modified",
         301 => "Moved Permanently",
         302 => "Found",
         303 => "See Other",
@@ -186,16 +189,61 @@ pub fn reason(status: i32) -> str {
     }
 }
 
-/// Write a whole response; `head_only` for `HEAD`.
+/// Write a whole response; `head_only` for `HEAD`. A 304 goes without a
+/// body or Content-Length (its length would be the 200's).
 pub fn send<B: AsBytes>(s: TcpStream, status: i32, headers: List<str>, body: B, head_only: bool) throws {
     let bytes = body.byte_slice();
+    let bare = status == 304;
     let h = StrBuf::new();
     h.push_str(f"HTTP/1.1 {status} {reason(status)}\r\n");
     for x in headers { h.push_str(x + "\r\n"); }
-    h.push_str(f"Content-Length: {bytes.len()}\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n\r\n");
+    if !bare { h.push_str(f"Content-Length: {bytes.len()}\r\n"); }
+    h.push_str("Connection: close\r\nX-Content-Type-Options: nosniff\r\n\r\n");
     try s.set_write_timeout(Duration::sec(30));
     try s.write_all(h.to_str());
-    if !head_only { try s.write_all(bytes); }
+    if !head_only && !bare { try s.write_all(bytes); }
+}
+
+/// For a file asked for by its current fingerprint (`?v=`): a year, never
+/// revalidated.
+pub const IMMUTABLE: str = "Cache-Control: public, max-age=31536000, immutable";
+/// For pages and files without a fingerprint: kept, but checked against
+/// the ETag on every use.
+pub const REVALIDATE: str = "Cache-Control: no-cache";
+
+fn sha_hex(data: List<u8> | Slice<u8> | str) -> str { hex_encode(HashAlgorithm::Sha256.digest(data)) }
+
+/// The fingerprint of `data`: 10 hex digits of its SHA-256, for `?v=`.
+pub fn version(data: List<u8> | Slice<u8> | str) -> str { sha_hex(data)[:10] }
+
+/// `url` with `data`'s fingerprint: `/rok.css?v=0123456789`.
+pub fn versioned(url: str, data: List<u8> | Slice<u8> | str) -> str { f"{url}?v={version(data)}" }
+
+/// Whether query string `query` names `data`'s current fingerprint, so
+/// the answer may be IMMUTABLE (an old `?v=` gets REVALIDATE).
+pub fn is_current(query: str, data: List<u8> | Slice<u8> | str) -> bool {
+    let v = "v=" + version(data);
+    for kv in query.split("&") {
+        if kv == v { return true; }
+    }
+    false
+}
+
+/// A strong ETag for `data`: 16 hex digits of its SHA-256, quoted.
+pub fn etag(data: List<u8> | Slice<u8> | str) -> str { "\"" + sha_hex(data)[:16] + "\"" }
+
+/// Whether `r` holds `tag` already (If-None-Match, weak comparison), so a
+/// GET or HEAD is answered 304 with the ETag and Cache-Control alone.
+pub fn not_modified(r: Request, tag: str) -> bool {
+    if r.method != "GET" && r.method != "HEAD" { return false; }
+    let inm = r.header("if-none-match");
+    if inm.is_empty() { return false; }
+    let want = if tag.starts_with("W/") { tag[2:] } else { tag };
+    for t in inm.split(",") {
+        let x = t.trim();
+        if x == "*" || x == want || x == "W/" + want { return true; }
+    }
+    false
 }
 
 fn hexval(b: u8) -> i32 {
@@ -357,4 +405,22 @@ fn forms_and_paths() {
     expect(static_file(".", "/.gitignore") is none, "dot files");
     expect(page_file(".", "/rok.rokon") == "./rok.rokon", "an asset by its name");
     expect(page_file(".", "/src") is none && page_file(".", "/") is none, "no index.html, no page");
+}
+
+#[test]
+fn caching() {
+    // SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223...
+    expect(version("abc") == "ba7816bf8f" && etag("abc") == "\"ba7816bf8f01cfea\"", "fingerprints");
+    let bytes: List<u8> = [97u8, 98u8, 99u8];
+    expect(version(bytes) == version("abc") && version(bytes[0:3]) == version("abc"), "bytes and text agree");
+    expect(versioned("/rok.css", "abc") == "/rok.css?v=ba7816bf8f", "versioned");
+    expect(is_current("x=1&v=ba7816bf8f", "abc") && !is_current("v=0000000000", "abc") && !is_current("", "abc"), "current");
+    let tag = etag("abc");
+    let get = |inm: str| { try parse_head("GET /rok.css HTTP/1.1\r\nIf-None-Match: " + inm) catch e { panic(e.msg); } };
+    expect(not_modified(get("\"x\", " + tag), tag) && not_modified(get("W/" + tag), tag) && not_modified(get("*"), tag), "matches");
+    expect(!not_modified(get("\"ba7816bf8f\""), tag), "another tag");
+    let post = try parse_head("POST / HTTP/1.1\r\nIf-None-Match: *") catch e { panic(e.msg); };
+    let plain = try parse_head("GET / HTTP/1.1") catch e { panic(e.msg); };
+    expect(!not_modified(post, tag) && !not_modified(plain, tag), "GET and HEAD with If-None-Match only");
+    expect(reason(304) == "Not Modified", "reason");
 }
