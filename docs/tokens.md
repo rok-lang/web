@@ -234,6 +234,7 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 | `.api-item`, `pre.sig`, `.members`, `.m-h`, `.mod`, `.nm`, `a.src`, `.since`, `.impls`, `.nw` | API pages (`apidoc`): an item, its signature, members with the name in `--ink` 500 and the modifiers (`pub const fn`) in `--ink-3`, a Source link per declaration |
 | `.lost`, `.lost-links` | the 404 body every site shares (`chrome::not_found`): title, one sentence, links |
 | `.ic` | inline code |
+| `.copy` + `js/copy.js` | copy buttons: `data-copy="<text>"`, or `data-copy-from="<selector>"` to copy an element's text at click time; the result is announced through a live region |
 | `.social` | brand icon links (GitHub, X, Bluesky, Mastodon), each with an `aria-label` |
 | `.ib.theme`, `.seg` | the header theme toggle (moon in light, sun in dark) and the footer System / Light / Dark switch |
 | `.foot`, `.foot .cols`, `.foot .about`, `.foot .col`, `.foot .bar` | the footer: brand, tagline, link columns, then the bar every site shares when it passes `release` to `chrome::footer`: the Rok sites (the current one `aria-current`), `rok <release>`, MIT OR Apache-2.0, Made by DaminStudio, the social links, the theme switch; two columns below 900px |
