@@ -232,6 +232,8 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 - The marks are always `#f9a8d4`, on any ground, with no box behind them.
 - Focus is a 2px `--focus` outline with a 2px offset on every focusable element; it is 5.9:1 on the light ground and 10.9:1 on the dark one, above the 3:1 WCAG asks of focus indicators.
 - One type scale for every site; a site never overrides tracking or line height of a step.
+- Inputs, selects and textareas are 16px below 768px: iOS Safari zooms the page into any smaller field on focus.
+- Theme: the header button flips light and dark, the footer offers System, Light and Dark. On `*.rok-lang.org` the choice is also a `theme` cookie for `Domain=.rok-lang.org`, so it carries across rok-lang.org, docs and the playground; the head script reads the cookie, then `localStorage.theme`, then `prefers-color-scheme`.
 
 ## Changing a token
 
