@@ -1,0 +1,7 @@
+// The Rok sites' shared server and page code: HTTP, address rules, the
+// kit's files built in, shared markup. Sites use it as a path dependency
+// into their `web/` submodule: "web": Dep::path("web/rok").
+Package {
+    name: "web",
+    version: "0.1.0",
+}

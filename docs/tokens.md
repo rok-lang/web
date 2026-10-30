@@ -25,21 +25,25 @@ Light and dark are two separately designed palettes, not an inversion of each ot
 
 ### Choosing the theme
 
-1. If the visitor chose a theme before, `localStorage.theme` holds `"light"` or `"dark"`; use it.
-2. Otherwise follow `prefers-color-scheme`.
-3. Set the class in a small inline script in `<head>`, before the first paint, so there is no flash of the wrong theme:
+`js/theme.js` does it for every site:
+
+1. If the visitor chose a theme, the `theme` cookie holds `light` or `dark`. It is set for the site's domain (`Domain=.rok-lang.org` on any `*.rok-lang.org` host, from `location.hostname`; host-only on `localhost` and IP addresses), so rok-lang.org, the docs and the playground share it.
+2. Else `localStorage.theme` holds `"light"` or `"dark"`.
+3. Else it follows `prefers-color-scheme`.
+
+Load it blocking in `<head>`, right after `<meta name="theme-color">`, so it sets `<html class="rk lt js">` or `rk dk js` and the bar colour before the first paint. It is a file, not an inline script, so a CSP without `'unsafe-inline'` allows it:
 
 ```html
-<script>
-try {
-  var t = localStorage.getItem("theme");
-  if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.documentElement.className = "rk " + (t === "dark" ? "dk" : "lt");
-} catch (e) { document.documentElement.className = "rk lt"; }
-</script>
+<meta name="theme-color" content="#fbfbfc">
+<script src="/theme.js"></script>
 ```
 
-The toggle writes `localStorage.theme` (inside `try`, storage can be unavailable) and swaps `lt` / `dk`. Nothing else changes: every colour follows from the class.
+Once the page is parsed it wires two controls, whose markup `chrome.rok` writes:
+
+- the header toggle, `<button class="ib theme" aria-label="Dark theme" aria-pressed="false">` with a moon and a sun icon. Its name stays "Dark theme"; `aria-pressed` says whether dark is on and the `title` names the action (`Switch to light theme`).
+- the footer switch, `.seg` with three buttons `data-theme-set="auto"`, `"light"` and `"dark"` (System, Light, Dark), the current one `aria-pressed="true"`.
+
+A choice writes the cookie and `localStorage.theme` (System deletes both) and swaps `lt` / `dk`; `<meta name="theme-color">` follows the resolved `--bg`. The page follows the system setting while on System, and re-reads the choice when it is shown again (another site of the domain may have changed it). Nothing else changes: every colour follows from the class. Without scripts the class stays `rk lt` and both controls are hidden (`html.rk:not(.js)`).
 
 ## Colour
 
@@ -167,12 +171,14 @@ Terminal transcripts (`.term`) reproduce rokc's own colours. On a dark terminal 
 
 | Variable | Stack | Features |
 |---|---|---|
-| `--sans` | Geist, Pretendard Variable, system-ui | `ss01`, `cv11` |
-| `--mono` | Geist Mono, Pretendard Variable, ui-monospace | `zero` (slashed zero), `ss01` |
+| `--sans` | Geist, Geist Fallback, Geist Fallback Roboto, Pretendard Variable, system-ui | `ss01`, `cv11` |
+| `--mono` | Geist Mono, Geist Mono Fallback, Geist Mono Fallback Consolas, Pretendard Variable, ui-monospace | `zero` (slashed zero), `ss01` |
+
+The Fallback families are local fonts (Arial or Helvetica, Roboto, Menlo, Consolas; Liberation on Linux) with `size-adjust` and ascent / descent overrides measured against Geist, so text keeps its line breaks when the webfonts swap in. They cover Latin only; other scripts fall through to Pretendard.
 
 Korean text (`:lang(ko)` or `.ko`) switches to Pretendard first, with a line height of 1.75 and tracking of -0.005em: Hangul needs more leading than Latin and looks loose at Geist's tracking. Pretendard also follows Geist in the Latin stacks, so a Korean word inside English text renders in a matching face.
 
-Sites load Geist and Geist Mono from Google Fonts and Pretendard from its dynamic-subset stylesheet on jsDelivr (`pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`), which names the family `Pretendard Variable`; `Pretendard` stays in the stacks for a locally installed copy.
+Sites load Geist and Geist Mono from Google Fonts, preloading the two Latin files, and Pretendard from its dynamic-subset stylesheet on jsDelivr (`pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`), which names the family `Pretendard Variable`; `Pretendard` stays in the stacks for a locally installed copy. `chrome::fonts()` writes those `<head>` lines.
 
 Weights are 400, 500 and 600 only. There is no bold 700.
 
@@ -225,6 +231,9 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 | `.kv`, `.tbl` | key / value list and data table |
 | `.ic` | inline code |
 | `.social` | brand icon links (GitHub, X, Bluesky, Mastodon), each with an `aria-label` |
+| `.ib.theme`, `.seg` | the header theme toggle (moon in light, sun in dark) and the footer System / Light / Dark switch |
+| `.foot`, `.foot .cols`, `.foot .about`, `.foot .col`, `.foot .bar` | the footer: brand, tagline and social links, link columns, then the bar with the Rok sites (the current one `aria-current`) and the theme switch; two columns below 900px |
+| `.skip`, `.sr-only` | the skip link, shown on keyboard focus; text for screen readers only |
 
 ## Rules
 
@@ -236,11 +245,12 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 - Focus is a 2px `--focus` outline with a 2px offset on every focusable element; it is 5.9:1 on the light ground and 10.9:1 on the dark one, above the 3:1 WCAG asks of focus indicators.
 - One type scale for every site; a site never overrides tracking or line height of a step.
 - Inputs, selects and textareas are 16px below 768px: iOS Safari zooms the page into any smaller field on focus.
-- Theme: the header button flips light and dark, the footer offers System, Light and Dark. On `*.rok-lang.org` the choice is also a `theme` cookie for `Domain=.rok-lang.org`, so it carries across rok-lang.org, docs and the playground; the head script reads the cookie, then `localStorage.theme`, then `prefers-color-scheme`.
+- Theme: the header button flips light and dark, the footer offers System, Light and Dark, both driven by `js/theme.js` (see Choosing the theme). A site never carries its own copy.
+- Search: `/`, Ctrl+K and Cmd+K focus the search field (`js/keys.js`, by key code, so Caps Lock and a Korean IME do not stop it); the field lists them in `aria-keyshortcuts`.
 
 ## Changing a token
 
 1. Pick the OKLCH value, convert it to hex, and change the token in both the `.rk` and the `.rk.dk` block of `css/rok.css`.
 2. Recompute the values and contrast tables above and fix any pair below 4.5:1.
 3. Update the Tokens board on the design canvas so the reference matches.
-4. Tag a release of this repository. Sites pin a tag, so the change reaches all of them when they move to it.
+4. Push it to main here. Each site pins this repository as its `web/` submodule, so the change reaches a site when it bumps the submodule (`git submodule update --remote web`, then commit).

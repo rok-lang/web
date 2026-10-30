@@ -1,0 +1,69 @@
+// The kit's files as a site publishes them, built into the program: the
+// stylesheet, the scripts, the mark and the icons. A generator writes them
+// into its output, a server answers with them; either way their public
+// names stay what pages and link previews already point at.
+
+/// Whose mark a site wears: rok-lang.org, the docs and the playground
+/// wear Rok's, rokstones.io its own. It picks logo.svg, favicon.ico and
+/// apple-touch-icon.png.
+pub enum Mark {
+    Rok,
+    Rokstones,
+}
+
+pub struct File {
+    /// The public name, under the site root (`rok.css`, `logo.svg`).
+    pub name: str;
+    pub data: Slice<u8>;
+}
+
+pub const ROK_CSS: str = include_str!("../../css/rok.css");
+pub const ROK_SVG: str = include_str!("../../assets/rok.svg");
+pub const ROKSTONES_SVG: str = include_str!("../../assets/rokstones.svg");
+
+/// Every file a site with `mark` publishes from the kit.
+pub fn files(mark: Mark) -> List<File> {
+    let common = [
+        File { name: "rok.css", data: include_bytes!("../../css/rok.css") },
+        File { name: "theme.js", data: include_bytes!("../../js/theme.js") },
+        File { name: "keys.js", data: include_bytes!("../../js/keys.js") },
+        File { name: "rok.svg", data: include_bytes!("../../assets/rok.svg") },
+    ];
+    let own = match mark {
+        Mark::Rok => [
+            File { name: "logo.svg", data: include_bytes!("../../assets/rok.svg") },
+            File { name: "favicon.ico", data: include_bytes!("../../assets/rok-favicon.ico") },
+            File { name: "apple-touch-icon.png", data: include_bytes!("../../assets/rok-apple-touch-icon.png") },
+        ],
+        Mark::Rokstones => [
+            File { name: "logo.svg", data: include_bytes!("../../assets/rokstones.svg") },
+            File { name: "favicon.ico", data: include_bytes!("../../assets/rokstones-favicon.ico") },
+            File { name: "apple-touch-icon.png", data: include_bytes!("../../assets/rokstones-apple-touch-icon.png") },
+        ],
+    };
+    let all: List<File> = List::new();
+    for f in common { all.push(f); }
+    for f in own { all.push(f); }
+    all
+}
+
+/// The kit's file published as `name` (`rok.css`, no leading slash), or none.
+pub fn find(mark: Mark, name: str) -> File | none {
+    for f in files(mark) {
+        if f.name == name { return f; }
+    }
+    none
+}
+
+#[test]
+fn marks() {
+    let names: List<str> = List::new();
+    for f in files(Mark::Rok) { names.push(f.name); }
+    assert(names.join(" ") == "rok.css theme.js keys.js rok.svg logo.svg favicon.ico apple-touch-icon.png", names.join(" "));
+    let logo = find(Mark::Rokstones, "logo.svg") ?? panic("no logo.svg");
+    assert(logo.data.len() == ROKSTONES_SVG.len(), "rokstones logo");
+    let css = find(Mark::Rok, "rok.css") ?? panic("no rok.css");
+    assert(css.data.len() == ROK_CSS.len() && ROK_CSS.starts_with("/*"), "rok.css");
+    assert(find(Mark::Rok, "style.css") is none && find(Mark::Rok, "/rok.css") is none, "kit files only, by name");
+    for f in files(Mark::Rokstones) { assert(f.data.len() > 0, f.name); }
+}
