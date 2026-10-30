@@ -1,7 +1,9 @@
 //! The Rok sites' shared code: `http` (HTTP/1.1, forms, cookies, static
-//! files), `url` (canonical addresses), `kit` (the kit's files built in)
-//! and `chrome` (the markup the sites share).
+//! files), `url` (canonical addresses), `kit` (the kit's files built in),
+//! `chrome` (the markup the sites share) and `apidoc` (library sources
+//! scanned for API pages).
 
+pub mod apidoc;
 pub mod chrome;
 pub mod http;
 pub mod kit;

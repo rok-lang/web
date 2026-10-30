@@ -176,7 +176,7 @@ Terminal transcripts (`.term`) reproduce rokc's own colours. On a dark terminal 
 
 The Fallback families are local fonts (Arial or Helvetica, Roboto, Menlo, Consolas; Liberation on Linux) with `size-adjust` and ascent / descent overrides measured against Geist, so text keeps its line breaks when the webfonts swap in. They cover Latin only; other scripts fall through to Pretendard.
 
-Korean text (`:lang(ko)` or `.ko`) switches to Pretendard first, with a line height of 1.75 and tracking of -0.005em: Hangul needs more leading than Latin and looks loose at Geist's tracking. Pretendard also follows Geist in the Latin stacks, so a Korean word inside English text renders in a matching face.
+Korean text (`:lang(ko)` or `.ko`) switches to Pretendard first, with a line height of 1.75 and tracking of -0.005em: Hangul needs more leading than Latin and looks loose at Geist's tracking. Code inside Korean text (`pre`, `code`, `kbd`, `.mono` and everything in `pre` / `code`) keeps the mono face, no tracking and its own line height: 22px in code blocks, 21px in terminals. Pretendard also follows Geist in the Latin stacks, so a Korean word inside English text renders in a matching face.
 
 Sites load Geist and Geist Mono from Google Fonts, preloading the two Latin files, and Pretendard from its dynamic-subset stylesheet on jsDelivr (`pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`), which names the family `Pretendard Variable`; `Pretendard` stays in the stacks for a locally installed copy. `chrome::fonts()` writes those `<head>` lines.
 
@@ -201,7 +201,7 @@ Each step fixes size, line height and tracking together. Tracking is tied to the
 
 Headings use `text-wrap: balance` and paragraphs `text-wrap: pretty`, so a heading never ends on a single word and a paragraph avoids a one-word last line.
 
-Code is 14 / 22 in blocks and 0.88em inline; terminals are 13 / 21.
+Code is 14 / 22 in blocks and 0.88em inline, on every site; terminals are 13 / 21. A terminal never wraps rokc's lines: `.term` is `white-space: pre` and scrolls sideways, so a diagnostic keeps its columns on a phone.
 
 Do not invent sizes between the steps. If a design seems to need one, it needs a different step.
 
@@ -220,19 +220,23 @@ Borders are 1px: `--line` between regions, `--line-2` on controls. The only shad
 
 | Class | What it is |
 |---|---|
-| `.hdr`, `.brand`, `.nav`, `.search`, `.kbd`, `.ib` | the shared header: mark and site name, section nav, search field with its shortcut, icon button |
+| `.hdr`, `.brand`, `.nav`, `.search`, `.kbd`, `.ib` | the shared header: mark and site name, section nav, search field with its shortcut, icon button. The active nav link is `.nav a[aria-current]` (or `.on`): `--ink`, weight 500, on `--bg-2` |
+| `.nav.sites` | the Rok sites as header links (`chrome::header_sites`), styled like any nav |
 | `.btn`, `.btn-2`, `.btn-sm` | primary, secondary and small buttons |
+| `.copy` | the Copy button (`chrome::copy_button`, `js/copy.js`): quiet, says "Copied" for a moment |
 | `.chip`, `.chip-acc`, `.chip-new` | square-cornered metadata tags (a version, "latest", "Added in"); never decoration |
 | `.tabs`, `.tabs .on`, `.tabs .ct` | underlined tabs with an optional count |
 | `.cb`, `.cb-h`, `.pre`, `.ln`, `.ln.hl` | code block, its file name bar, the code, a line, a highlighted line |
-| `.term` | terminal transcript or program output |
+| `.term`, `.term-bar` | terminal transcript or program output; the bar over it names the working directory (`~/hello`), so a white terminal stands apart from a light page |
 | `.callout`, `.callout.help` | note and help callouts, labelled with rokc's own words (`note`, `help`, `warning`) |
 | `.side`, `.side .no`, `.toc`, `.prose` | docs shell: chapter sidebar with numbers, on-this-page list, article column |
 | `.kv`, `.tbl` | key / value list and data table |
+| `.api-item`, `pre.sig`, `.members`, `.m-h`, `.mod`, `.nm`, `a.src`, `.since`, `.impls`, `.nw` | API pages (`apidoc`): an item, its signature, members with the name in `--ink` 500 and the modifiers (`pub const fn`) in `--ink-3`, a Source link per declaration |
+| `.lost`, `.lost-links` | the 404 body every site shares (`chrome::not_found`): title, one sentence, links |
 | `.ic` | inline code |
 | `.social` | brand icon links (GitHub, X, Bluesky, Mastodon), each with an `aria-label` |
 | `.ib.theme`, `.seg` | the header theme toggle (moon in light, sun in dark) and the footer System / Light / Dark switch |
-| `.foot`, `.foot .cols`, `.foot .about`, `.foot .col`, `.foot .bar` | the footer: brand, tagline and social links, link columns, then the bar with the Rok sites (the current one `aria-current`) and the theme switch; two columns below 900px |
+| `.foot`, `.foot .cols`, `.foot .about`, `.foot .col`, `.foot .bar` | the footer: brand, tagline, link columns, then the bar every site shares when it passes `release` to `chrome::footer`: the Rok sites (the current one `aria-current`), `rok <release>`, MIT OR Apache-2.0, Made by DaminStudio, the social links, the theme switch; two columns below 900px |
 | `.skip`, `.sr-only` | the skip link, shown on keyboard focus; text for screen readers only |
 
 ## Rules

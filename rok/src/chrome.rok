@@ -72,10 +72,14 @@ pub struct Sites {
 }
 
 /// The bar's links to the Rok sites, the current one marked.
-pub fn sites_nav(s: Sites) -> str {
+pub fn sites_nav(s: Sites) -> str { sites_nav_in(s, false) }
+
+/// sites_nav, in Korean if `ko`.
+pub fn sites_nav_in(s: Sites, ko: bool) -> str {
     let b = StrBuf::new();
-    b.push_str("<nav aria-label=\"Rok sites\">");
-    for (key, text, href) in [("home", "Home", s.home), ("docs", "Docs", s.docs), ("stones", "Stones", s.stones), ("playground", "Playground", s.playground)] {
+    b.push_str(if ko { "<nav aria-label=\"Rok 사이트\">" } else { "<nav aria-label=\"Rok sites\">" });
+    let names = if ko { ["홈", "문서", "스톤", "플레이그라운드"] } else { ["Home", "Docs", "Stones", "Playground"] };
+    for (key, text, href) in [("home", names[0], s.home), ("docs", names[1], s.docs), ("stones", names[2], s.stones), ("playground", names[3], s.playground)] {
         let cur = if key == s.current { " aria-current=\"page\"" } else { "" };
         b.push_str(f"<a href=\"{esc(href)}\"{cur}>{text}</a>");
     }
@@ -83,7 +87,29 @@ pub fn sites_nav(s: Sites) -> str {
     b.to_str()
 }
 
+/// The Rok sites as header links (`.nav.sites`), the current one marked
+/// like any active header link.
+pub fn header_sites(s: Sites, ko: bool) -> str {
+    sites_nav_in(s, ko).replace("<nav aria-label=", "<nav class=\"nav sites\" aria-label=")
+}
+
+/// The body of a 404 page every Rok site shares: a title, one plain
+/// sentence (HTML) and where to go instead, each `(href, text)`.
+pub fn not_found(title: str, sentence: str, links: List<(str, str)>) -> str {
+    let b = StrBuf::new();
+    for (href, text) in links { b.push_str(f"<li><a href=\"{esc(href)}\">{esc(text)}</a></li>"); }
+    f"<div class=\"lost\"><h1 class=\"t-h1\">{esc(title)}</h1><p class=\"t-lead\">{sentence}</p><ul class=\"lost-links\">{b.to_str()}</ul></div>"
+}
+
 pub const MADE_BY: str = "<span>Made by <a href=\"https://daminstudio.com\">DaminStudio</a></span>";
+pub const MADE_BY_KO: str = "<span>제작 <a href=\"https://daminstudio.com\">DaminStudio</a></span>";
+pub const LICENSE: str = "MIT OR Apache-2.0";
+
+/// A Copy button: copy.js puts `text` on the clipboard and says so.
+pub fn copy_button(text: str, ko: bool) -> str {
+    let (label, name) = if ko { ("복사", "복사") } else { ("Copy", "Copy") };
+    f"<button type=\"button\" class=\"btn-2 btn-sm copy\" data-copy=\"{esc(text)}\" aria-label=\"{name}\">{label}</button>"
+}
 
 /// The footer of rok-lang.org, the docs and rokstones.io.
 pub struct Footer {
@@ -99,20 +125,33 @@ pub struct Footer {
     /// "Made by" (notes), each a run of `<span>`s.
     pub before: str = "";
     pub after: str = "";
-    /// Korean page: the theme switch speaks Korean, the rest stays English.
+    /// Korean page: the theme switch, the sites and the bar speak Korean
+    /// (the columns come as given).
     pub ko: bool = false;
+    /// The toolchain release. Set, the bar is the one every Rok site
+    /// shares: sites, `rok <release>`, the licence, Made by, `after`, the
+    /// social links, the theme switch; `before` is then unused and the
+    /// social links leave the brand column.
+    pub release: str = "";
 }
 
 pub fn footer(f: Footer) -> str {
     let cols = StrBuf::new();
     for (title, links) in f.cols { cols.push_str(f"<div class=\"col\"><p class=\"t-label\">{esc(title)}</p>{links}</div>\n"); }
-    f"<footer class=\"foot\" lang=\"en\">
+    let lang = if f.ko { "ko" } else { "en" };
+    let made = if f.ko { MADE_BY_KO } else { MADE_BY };
+    let (about_social, bar) = if f.release.is_empty() {
+        (SOCIAL, f"{f.before}{made}{f.after}")
+    } else {
+        ("", f"<span class=\"mono\">rok {esc(f.release)}</span><span>{LICENSE}</span>{made}{f.after}{SOCIAL}")
+    };
+    f"<footer class=\"foot\" lang=\"{lang}\">
 <div class=\"frame cols\">
-<div class=\"about\"><a class=\"brand\" href=\"{esc(f.home)}\"><img src=\"{esc(f.logo)}\" alt=\"\" width=\"24\" height=\"24\">Rok</a><p>{esc(f.tagline)}</p>{SOCIAL}</div>
+<div class=\"about\"><a class=\"brand\" href=\"{esc(f.home)}\" lang=\"en\"><img src=\"{esc(f.logo)}\" alt=\"\" width=\"24\" height=\"24\">Rok</a><p>{esc(f.tagline)}</p>{about_social}</div>
 {cols.to_str()}</div>
 <div class=\"frame bar\">
-{sites_nav(f.sites)}
-{f.before}{MADE_BY}{f.after}
+{sites_nav_in(f.sites, f.ko)}
+{bar}
 {theme_seg(f.ko)}
 </div>
 </footer>
@@ -145,4 +184,10 @@ fn footers() {
     assert(f.contains("<div class=\"col\"><p class=\"t-label\">Learn</p><a href=\"/learn\">Guide</a></div>"), "column");
     assert(f.contains("<span>v1</span><span>Made by"), "bar");
     assert(f.contains("lang=\"en\"><button"), "english switch");
+    let g = footer(Footer { home: "/", logo: "/logo.svg", tagline: "t", cols: List::new(), sites: sites, release: "0.1.4", ko: true });
+    assert(g.contains("<span class=\"mono\">rok 0.1.4</span><span>MIT OR Apache-2.0</span><span>제작") && g.contains(">홈</a>"), "shared bar");
+    assert(count(g, "class=\"social\"") == 1 && g.contains("<footer class=\"foot\" lang=\"ko\">"), "social once, korean");
+    assert(header_sites(sites, false).starts_with("<nav class=\"nav sites\""), "header sites");
+    assert(not_found("Gone", "No page <code>x</code>.", [("/", "Home")]).contains("<li><a href=\"/\">Home</a></li>"), "404");
+    assert(copy_button("a\"b", false).contains("data-copy=\"a&quot;b\""), "copy");
 }

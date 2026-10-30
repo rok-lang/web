@@ -27,6 +27,7 @@ pub fn files(mark: Mark) -> List<File> {
         File { name: "rok.css", data: include_bytes!("../../css/rok.css") },
         File { name: "theme.js", data: include_bytes!("../../js/theme.js") },
         File { name: "keys.js", data: include_bytes!("../../js/keys.js") },
+        File { name: "copy.js", data: include_bytes!("../../js/copy.js") },
         File { name: "rok.svg", data: include_bytes!("../../assets/rok.svg") },
     ];
     let own = match mark {
@@ -59,7 +60,7 @@ pub fn find(mark: Mark, name: str) -> File | none {
 fn marks() {
     let names: List<str> = List::new();
     for f in files(Mark::Rok) { names.push(f.name); }
-    assert(names.join(" ") == "rok.css theme.js keys.js rok.svg logo.svg favicon.ico apple-touch-icon.png", names.join(" "));
+    assert(names.join(" ") == "rok.css theme.js keys.js copy.js rok.svg logo.svg favicon.ico apple-touch-icon.png", names.join(" "));
     let logo = find(Mark::Rokstones, "logo.svg") ?? panic("no logo.svg");
     assert(logo.data.len() == ROKSTONES_SVG.len(), "rokstones logo");
     let css = find(Mark::Rok, "rok.css") ?? panic("no rok.css");

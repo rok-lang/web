@@ -108,6 +108,12 @@
 .ic{font-family:var(--mono);font-size:.88em;background:var(--code);border:1px solid var(--line);padding:0 .3em;border-radius:4px}
 .k{color:var(--k)}.t{color:var(--t)}.s{color:var(--s)}.n{color:var(--n)}.c{color:var(--c)}
 :lang(ko),.ko{font-family:"Pretendard Variable","Pretendard","Geist",sans-serif;letter-spacing:-0.005em;line-height:1.75}
+/* code inside Korean text keeps the mono face, its tracking and its line
+   height (every element inherits :lang(ko), so each needs saying) */
+:lang(ko) :is(pre,code,kbd,samp,.mono,.kbd),:lang(ko) :is(pre,code) *{font-family:var(--mono);letter-spacing:0}
+:lang(ko) pre,:lang(ko) pre *{line-height:inherit}
+:lang(ko) .cb pre,:lang(ko) .pre{line-height:22px}
+:lang(ko) .term{line-height:21px}
 .h1,.m0,h1,h2,h3,p,pre,ul,ol,dl,figure{margin:0}
 
 /* hidden but read out; the skip link shows on keyboard focus */
@@ -125,7 +131,7 @@
 .brand .sl{color:var(--line-2);font-weight:400}.brand .site{font-weight:500}
 .nav{display:flex;gap:4px;flex-wrap:wrap}
 .nav a{color:var(--ink-2);padding:6px 10px;border-radius:6px}
-.nav a.on{color:var(--ink);background:var(--bg-2);font-weight:500}
+.nav a.on,.nav a[aria-current]{color:var(--ink);background:var(--bg-2);font-weight:500}
 .nav a:hover{text-decoration:none;color:var(--ink)}
 .search{display:flex;align-items:center;gap:8px;height:34px;padding:0 6px 0 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel);color:var(--ink-3);font:inherit;font-size:13px;cursor:pointer;box-sizing:border-box}
 .search span{flex:1;text-align:left}
@@ -147,6 +153,10 @@ html.rk:not(.js) .ib.theme,html.rk:not(.js) .seg{display:none}
 .btn{display:inline-flex;align-items:center;gap:8px;background:var(--btn);color:var(--btn-ink)!important;font-size:15px;line-height:20px;font-weight:500;padding:11px 18px;border-radius:6px;border:0;text-decoration:none!important;cursor:pointer}
 .btn-2{display:inline-flex;align-items:center;gap:8px;color:var(--ink)!important;font-size:15px;line-height:20px;font-weight:500;padding:10px 17px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel);text-decoration:none!important;cursor:pointer}
 .btn-sm{font-size:13px;padding:5px 10px;border-radius:6px}
+/* copy.js: a quiet small button that says "Copied" for a moment */
+.copy{flex:none;padding:3px 10px;font-size:13px;line-height:18px;border-color:transparent;background:transparent;color:var(--ink-2)!important}
+.copy:hover{background:var(--bg-2);color:var(--ink)!important}
+.copy.done{color:var(--ink)!important}
 .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;line-height:16px;padding:2px 7px;border:1px solid var(--line-2);border-radius:4px;color:var(--ink-2)}
 .chip-acc{border-color:transparent;background:var(--acc-bg);color:var(--acc)}
 .chip-new{border-color:transparent;background:var(--note-bg);color:var(--note-ink)}
@@ -166,7 +176,11 @@ html.rk:not(.js) .ib.theme,html.rk:not(.js) .seg{display:none}
 .ln.hl{background:var(--acc-bg);box-shadow:inset 2px 0 0 var(--acc)}
 
 /* terminal and program output: follow the theme, white on light pages */
-.term{background:var(--term);color:var(--term-ink);border:1px solid var(--line);font-family:var(--mono);font-size:13px;line-height:21px;padding:14px 16px}
+.term{background:var(--term);color:var(--term-ink);border:1px solid var(--line);font-family:var(--mono);font-size:13px;line-height:21px;padding:14px 16px;white-space:pre;overflow-x:auto}
+/* a terminal's title bar (the working directory), so a white terminal
+   stands apart from a light page */
+.term-bar{display:flex;align-items:center;height:30px;padding:0 14px;border:1px solid var(--line);border-bottom:0;border-radius:6px 6px 0 0;background:var(--bg-2);color:var(--ink-3);font-family:var(--mono);font-size:12px;line-height:16px}
+.term-bar+.term{border-top-left-radius:0;border-top-right-radius:0}
 .term .p,.term .d,.term .t-label{color:var(--ink-3)}
 .term .t-label{font-weight:500}
 .term .v,.term .g{color:var(--cli-sky);font-weight:600}
@@ -232,6 +246,35 @@ html.rk:not(.js) .ib.theme,html.rk:not(.js) .seg{display:none}
   .seg{margin-left:0}
 }
 @media print{.skip,.foot{display:none!important}}
+
+/* API pages (apidoc): an item under a rule, its signature, its members
+   with the name in ink and the modifiers quiet, a Source link per line */
+.api-item{padding:24px 0 8px;border-top:1px solid var(--line)}
+.api-item h3{margin:0 0 12px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-family:var(--mono);font-size:20px;line-height:28px;font-weight:500;letter-spacing:-0.02em}
+.api-item h3 a{color:var(--ink)}
+pre.sig{margin:0 0 14px;white-space:pre-wrap}
+pre.sig code,.m-h>pre code{display:block;padding-left:4ch;text-indent:-4ch}
+.nw{white-space:nowrap}
+.mod{color:var(--ink-3)}
+.nm{color:var(--ink);font-weight:500}
+.members{list-style:none;margin:8px 0 16px;padding:0}
+.members>li{margin:0;padding:14px 0;border-top:1px solid var(--line)}
+.members>li:target{background:var(--acc-bg)}
+.m-h{display:flex;align-items:baseline;gap:12px}
+.m-h>pre{flex:1 1 auto;min-width:0;margin:0;padding:0;border:0;background:none;white-space:pre-wrap;font-family:var(--mono);font-size:14px;line-height:22px}
+.since,a.src{color:var(--ink-3);font-family:var(--sans);font-size:13px;line-height:18px;font-weight:400;letter-spacing:0;white-space:nowrap}
+a.src{margin-left:auto}
+a.src:hover{color:var(--ink)}
+.impls{margin:0 0 16px;font-size:14px;line-height:20px;color:var(--ink-2)}
+.impls summary{cursor:pointer;padding:4px 0}
+.impls ul{list-style:none;margin:8px 0 0;padding:0}
+.impls li{padding:4px 0}
+
+/* the shared 404 body (chrome::not_found) */
+.lost{max-width:640px;padding:24px 0 48px}
+.lost h1{margin-bottom:12px}
+.lost .t-lead{margin-bottom:24px}
+.lost-links{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 20px;font-size:15px;line-height:24px}
 
 /* data */
 .kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:10px 18px;font-size:14px;line-height:20px}

@@ -6,8 +6,9 @@ What rok-lang.org, docs.rok-lang.org, rokstones.io and playground.rok-lang.org s
 - `docs/tokens.md`: how the tokens work, every token's role, values and contrast, the type scale, the theme contract and the rules
 - `js/theme.js`: light and dark, loaded blocking in `<head>`: the class before the first paint, then the header toggle and the footer switch
 - `js/keys.js`: `/`, Ctrl+K and Cmd+K focus the search field
+- `js/copy.js`: Copy buttons (`button[data-copy]`, `chrome::copy_button`)
 - `assets/`: the Rok and rokstones marks (SVG, and 512px PNG on white, black and transparent), each site's `favicon.ico` and `apple-touch-icon.png`, the Rok profile picture
-- `rok/`: the `web` Rok library the three servers build with: `http` (HTTP/1.1, forms, cookies, static files), `url` (canonical addresses and their 301s), `kit` (the files above, built into the program), `chrome` (theme controls, social links, the bar of sites, the footer, the `<head>` lines for fonts and icons)
+- `rok/`: the `web` Rok library the three servers build with: `http` (HTTP/1.1, forms, cookies, static files), `url` (canonical addresses and their 301s), `kit` (the files above, built into the program), `chrome` (theme controls, social links, the bar of sites, the footer and its shared bottom row, the Copy button, the 404 body, the `<head>` lines for fonts and icons), `apidoc` (the scanner behind the API pages: `pub` items, docs, signatures, members and their source lines)
 - `tools/content`: `rok-content`, which bundles the docs, www and spec repositories for the rok-lang.org server
 - `fonts/`: font sources and licences
 
@@ -21,7 +22,7 @@ deps: {
 },
 ```
 
-`web::kit` builds the published files into the program, so a generator writes them into its output and a server answers with them, at the names pages already use: `/rok.css`, `/theme.js`, `/keys.js`, `/rok.svg`, and `/logo.svg`, `/favicon.ico`, `/apple-touch-icon.png` from the site's mark (`kit::Mark::Rok` or `kit::Mark::Rokstones`). Deploys need nothing from `web/` at run time; rokstones.io's Open Graph templates read `web/css/rok.css` and the mark from the checkout.
+`web::kit` builds the published files into the program, so a generator writes them into its output and a server answers with them, at the names pages already use: `/rok.css`, `/theme.js`, `/keys.js`, `/copy.js`, `/rok.svg`, and `/logo.svg`, `/favicon.ico`, `/apple-touch-icon.png` from the site's mark (`kit::Mark::Rok` or `kit::Mark::Rokstones`). Deploys need nothing from `web/` at run time; rokstones.io's Open Graph templates read `web/css/rok.css` and the mark from the checkout.
 
 Clone a site with its submodule, and bump the kit by moving the submodule:
 
