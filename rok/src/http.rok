@@ -327,6 +327,7 @@ pub fn content_type(path: str) -> str {
         "css" => "text/css; charset=utf-8",
         "js" | "mjs" => "text/javascript; charset=utf-8",
         "json" => "application/json",
+        "xml" => "application/xml; charset=utf-8",
         "wasm" => "application/wasm",
         "txt" | "md" | "rok" | "rokon" | "sh" | "ps1" => "text/plain; charset=utf-8",
         "png" => "image/png",
@@ -395,7 +396,7 @@ fn forms_and_paths() {
     expect((pct_decode("%4", false) ?? "x") == "x" && (pct_decode("%41", false) ?? "") == "A", "decode");
     let r = try parse_head("GET / HTTP/1.1\r\nCookie: a=1; rks_session=abc; b=2") catch e { panic(e.msg); };
     expect(cookie(r, "rks_session") == "abc" && cookie(r, "zz") == "", "cookie");
-    expect(content_type("x/a.CSS") == "text/css; charset=utf-8" && content_type("a") == "application/octet-stream", "types");
+    expect(content_type("x/a.CSS") == "text/css; charset=utf-8" && content_type("a") == "application/octet-stream" && content_type("sitemap.xml") == "application/xml; charset=utf-8", "types");
     expect(content_type("install.sh") == "text/plain; charset=utf-8", "scripts as text");
     expect(static_file("src", "/http.rok") == "src/http.rok", "file");
     expect(static_file("src", "/../rok.rokon") is none, "dotdot");
