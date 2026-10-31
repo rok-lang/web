@@ -273,7 +273,23 @@ Borders are 1px: `--line` between regions, `--line-2` on buttons and other contr
 | `.foot`, `.foot .cols`, `.foot .about`, `.foot .col`, `.foot .bar` | the footer: brand, tagline, link columns, then the bar every site shares when it passes `release` to `chrome::footer`: the Rok sites (the current one `aria-current`), `rok <release>`, MIT OR Apache-2.0, Made by DaminStudio, the social links, the theme switch; two columns below 900px |
 | `.skip`, `.sr-only` | the skip link, shown on keyboard focus; text for screen readers only |
 
-## Rules
+## Motion
+
+A box or a label that changes size after the page has loaded eases from the old size to the new one; nothing moves on first paint, and with `prefers-reduced-motion: reduce` everything snaps. Keep a size fixed where that is possible (two variants stacked in one grid cell, a `min-width`); animate only where it is not.
+
+| Token | Value | Use |
+|---|---|---|
+| `--dur` | 200ms | opening, growing |
+| `--dur-out` | 150ms | closing, fading out |
+| `--ease` | `cubic-bezier(.2, 0, 0, 1)` | every size change: fast start, slow stop |
+
+| Hook | What it does |
+|---|---|
+| `details.grow` | the body slides open and shut (`::details-content`; the height eases where `interpolate-size` is supported, elsewhere it snaps) |
+| `.reveal` / `.reveal.open` | a one-row grid whose only child grows from 0 to its height (`grid-template-rows: 0fr` to `1fr`, every browser); put the child's padding on its own child, and make the closed child `inert` |
+| `.appear` | fades and drops in 4px when `hidden` is removed, out when it is set (`@starting-style`, `display` with `allow-discrete`) |
+| `rokResize(el, change)` | `js/copy.js`: runs `change`, then eases `el`'s width and height to the result (180ms); copy buttons use it for "Copied" |
+
 
 - No `light-dark()`, and no other colour function outside an `@supports` guard: the sites must keep their colours on iOS 16, Samsung Internet 25 and Android WebViews that lag behind.
 - Use a token for every colour. A literal colour in a site stylesheet is a bug, with two exceptions: `--mark` in the logo files, and the rokstones stone glyphs, whose hue is derived from the stone's name (`oklch(0.7 0.11 h)` light, `oklch(0.78 0.09 h)` dark) so every stone keeps its own colour.

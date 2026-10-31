@@ -169,7 +169,7 @@ html.rk:not(.js) .ib.theme,html.rk:not(.js) .seg{display:none}
 .btn-2{display:inline-flex;align-items:center;gap:8px;color:var(--ink)!important;font-size:15px;line-height:20px;font-weight:500;padding:10px 17px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel);text-decoration:none!important;cursor:pointer}
 .btn-sm{font-size:13px;padding:5px 10px;border-radius:6px}
 /* copy.js: a quiet small button that says "Copied" for a moment */
-.copy{flex:none;padding:3px 10px;font-size:13px;line-height:18px;border-color:transparent;background:transparent;color:var(--ink-2)!important}
+.copy{flex:none;white-space:nowrap;overflow:hidden;padding:3px 10px;font-size:13px;line-height:18px;border-color:transparent;background:transparent;color:var(--ink-2)!important}
 .copy:hover{background:var(--bg-2);color:var(--ink)!important}
 .copy.done{color:var(--ink)!important}
 .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;line-height:16px;padding:2px 7px;border:1px solid var(--line-2);border-radius:4px;color:var(--ink-2)}
@@ -303,3 +303,27 @@ a.src:hover{color:var(--ink)}
 .tbl th{text-align:left;font-size:13px;line-height:18px;font-weight:600;color:var(--ink-2);padding:8px 12px;border-bottom:1px solid var(--line)}
 .tbl td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .tbl tr:hover td{background:var(--bg-2)}
+
+/* motion: sizes that change after load ease from the old to the new; with
+   reduced motion they snap. Opt in per element:
+     details.grow    its body slides open and shut (::details-content)
+     .reveal(.open)  a one-row grid whose only child grows from nothing;
+                     give the child's padding to its own child
+     .appear         fades in when [hidden] goes, out when it comes back
+     rokResize(el,f) copy.js: run f, ease el's width and height to the result
+   Nothing animates on first paint: .appear starts hidden, the rest wait
+   for a click */
+.rk{--dur:200ms;--dur-out:150ms;--ease:cubic-bezier(.2,0,0,1)}
+details.grow::details-content{block-size:0;overflow-y:clip}
+details.grow[open]::details-content{block-size:auto}
+.reveal{display:grid;grid-template-rows:0fr}
+.reveal.open{grid-template-rows:1fr}
+.reveal>*{min-height:0;overflow:hidden}
+.appear[hidden]{display:none!important;opacity:0;translate:0 -4px}
+@media (prefers-reduced-motion:no-preference){
+  .rk{interpolate-size:allow-keywords}
+  details.grow::details-content{transition:block-size var(--dur) var(--ease),content-visibility var(--dur) allow-discrete}
+  .reveal{transition:grid-template-rows var(--dur) var(--ease)}
+  .appear{transition:opacity var(--dur-out) var(--ease),translate var(--dur-out) var(--ease),display var(--dur-out) allow-discrete}
+  @starting-style{.appear{opacity:0;translate:0 -4px}}
+}
