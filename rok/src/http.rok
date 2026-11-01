@@ -365,6 +365,59 @@ pub fn page_file(root: str, path: str) -> str | none {
     static_file(root, path + ".html") ?? static_file(root, path) ?? static_file(root, path + "/index.html")
 }
 
+/// Where browsers report what a page's CSP blocked: POST to the page's
+/// own site, so no CORS. A page sends REPORTING beside its CSP, and the
+/// CSP ends with REPORT_TO.
+pub const REPORT_PATH: str = "/_csp";
+pub const REPORTING: str = "Reporting-Endpoints: csp=\"/_csp\"";
+pub const REPORT_TO: str = "; report-uri /_csp; report-to csp";
+/// A report is a few hundred bytes; anything past this is not one.
+pub const MAX_REPORT: usize = 16384;
+
+/// One log line for the CSP violation in `body`, from report-uri
+/// (`{"csp-report": {..}}`) or the Reporting API (`[{"type":
+/// "csp-violation", "body": {..}}]`); none if it is neither.
+pub fn csp_report(body: str) -> str | none {
+    if body.len() > MAX_REPORT || (!body.contains("\"csp-report\"") && !body.contains("\"csp-violation\"")) { return none; }
+    let dir = json_str(body, ["effectiveDirective", "effective-directive", "violated-directive"]);
+    let blocked = json_str(body, ["blockedURL", "blocked-uri"]);
+    let page = json_str(body, ["documentURL", "document-uri"]);
+    let line = StrBuf::new();
+    for c in f"csp: {dir} blocked {blocked} on {page}".chars() {
+        if line.len() >= 400 { break; }
+        line.push(if c < ' ' || c == '\u{7f}' { '?' } else { c });
+    }
+    line.to_str()
+}
+
+/// The string value of the first of `names` in JSON text `j`, escapes
+/// left as written, or "-". Enough for a report; not a JSON parser.
+fn json_str(j: str, names: List<str>) -> str {
+    for n in names {
+        let k = "\"" + n + "\"";
+        let at = j.find(k) ?? continue;
+        let v = j[at + k.len():].trim_start().strip_prefix(":") ?? continue;
+        let s = v.trim_start().strip_prefix("\"") ?? continue;
+        let out = StrBuf::new();
+        let esc = false;
+        for c in s.chars() {
+            if !esc && c == '"' { return out.to_str(); }
+            esc = !esc && c == '\\';
+            out.push(c);
+        }
+    }
+    "-"
+}
+
+/// The speculation rules every site names in a Speculation-Rules header:
+/// fetch a same-site page when the pointer rests on its link (or it gets
+/// focus), so the click finds it ready. Prefetch only, never prerender,
+/// so no page runs before it is opened.
+pub const SPECULATION_PATH: str = "/speculation-rules.json";
+pub const SPECULATION: str = "Speculation-Rules: \"/speculation-rules.json\"";
+pub const SPECULATION_RULES: str = "{\"prefetch\":[{\"source\":\"document\",\"where\":{\"and\":[{\"href_matches\":\"/*\"},{\"not\":{\"href_matches\":\"/api/*\"}},{\"not\":{\"href_matches\":\"/_*\"}},{\"not\":{\"selector_matches\":\"[download], [rel~=nofollow]\"}}]},\"eagerness\":\"moderate\"}]}\n";
+pub const SPECULATION_TYPE: str = "Content-Type: application/speculationrules+json";
+
 #[cfg(test)]
 fn expect(ok: bool, what: str) {
     if !ok { panic(what); }
@@ -424,4 +477,14 @@ fn caching() {
     let plain = try parse_head("GET / HTTP/1.1") catch e { panic(e.msg); };
     expect(!not_modified(post, tag) && !not_modified(plain, tag), "GET and HEAD with If-None-Match only");
     expect(reason(304) == "Not Modified", "reason");
+}
+
+#[test]
+fn reports() {
+    let old = "{\"csp-report\":{\"document-uri\":\"https://rok-lang.org/\",\"violated-directive\":\"style-src-attr\",\"blocked-uri\":\"inline\"}}";
+    expect(csp_report(old) == "csp: style-src-attr blocked inline on https://rok-lang.org/", "report-uri");
+    let api = "[{\"type\":\"csp-violation\",\"body\":{\"documentURL\":\"https://x/a\\\"b\",\"effectiveDirective\":\"script-src-elem\",\"blockedURL\":\"https://evil/\\n\"}}]";
+    expect(csp_report(api) == "csp: script-src-elem blocked https://evil/\\n on https://x/a\\\"b", "Reporting API");
+    expect(csp_report("{\"csp-report\":{}}") == "csp: - blocked - on -", "empty");
+    expect(csp_report("hello") is none && csp_report("[{\"type\":\"deprecation\"}]") is none, "not a report");
 }

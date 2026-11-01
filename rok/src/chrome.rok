@@ -160,11 +160,20 @@ pub fn footer(f: Footer) -> str {
 "
 }
 
+/// `html` with the Markdown renderer's aligned table cells
+/// (`style="text-align:center"`) as rok.css classes (`class="ta-c"`):
+/// the sites' CSP refuses style attributes.
+pub fn align_classes(html: str) -> str {
+    if !html.contains(" style=\"text-align:") { return html; }
+    html.replace(" style=\"text-align:left\"", " class=\"ta-l\"").replace(" style=\"text-align:center\"", " class=\"ta-c\"").replace(" style=\"text-align:right\"", " class=\"ta-r\"")
+}
+
 #[cfg(test)]
 fn count(s: str, of: str) -> usize { s.split(of).count() - 1 }
 
 #[test]
 fn pieces() {
+    assert(align_classes("<th style=\"text-align:center\">a</th><td>b</td><td style=\"text-align:right\">c</td>") == "<th class=\"ta-c\">a</th><td>b</td><td class=\"ta-r\">c</td>", "aligned cells");
     assert(esc("a<b & \"c\">") == "a&lt;b &amp; &quot;c&quot;&gt;", "esc");
     let tb = theme_button(false);
     assert(tb.contains("aria-label=\"Dark theme\"") && tb.contains("aria-pressed=\"false\"") && tb.contains("class=\"ib theme\""), "button");

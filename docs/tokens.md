@@ -264,6 +264,7 @@ Borders are 1px: `--line` between regions, `--line-2` on buttons and other contr
 | `.callout`, `.callout.help` | note and help callouts, labelled with rokc's own words (`note`, `help`, `warning`) |
 | `.side`, `.side .no`, `.toc`, `.prose` | docs shell: chapter sidebar with numbers, on-this-page list, article column |
 | `.kv`, `.tbl` | key / value list and data table |
+| `.ta-l`, `.ta-c`, `.ta-r` | an aligned table cell from Markdown; `chrome::align_classes` turns the renderer's `style="text-align:.."` into these, since the CSP refuses style attributes |
 | `.api-item`, `pre.sig`, `.members`, `.m-h`, `.mod`, `.nm`, `a.src`, `.since`, `.impls`, `.nw` | API pages (`apidoc`): an item, its signature, members with the name in `--ink` 500 and the modifiers (`pub const fn`) in `--ink-3`, a Source link per declaration |
 | `.lost`, `.lost-links` | the 404 body every site shares (`chrome::not_found`): title, one sentence, links |
 | `.ic` | inline code |
@@ -334,3 +335,15 @@ let cc = if http::is_current(r.query, data) { http::IMMUTABLE } else { http::REV
 if http::not_modified(r, tag) { try http::send(s, 304, [cc, f"ETag: {tag}"], "", r.method == "HEAD"); return; }
 try http::send(s, 200, [f"Content-Type: {http::content_type(name)}", cc, f"ETag: {tag}"], data, r.method == "HEAD");
 ```
+
+## Security headers and speculation
+
+Every page carries a Content-Security-Policy without `'unsafe-inline'`: no `<script>` or `<style>` in a page and no `style=""` attribute. Styles set from script (`el.style`, WAAPI) are not affected. Each site keeps its own policy and ends it with `http::REPORT_TO`:
+
+| Helper | What it gives |
+|---|---|
+| `http::REPORT_TO` | `; report-uri /_csp; report-to csp`, appended to the CSP |
+| `http::REPORTING` | the `Reporting-Endpoints` header naming `/_csp`, sent beside the CSP |
+| `http::REPORT_PATH` | `/_csp`: answer a POST there with 204 and log `http::csp_report(r.body)` when it is some |
+| `http::SPECULATION` | the `Speculation-Rules` header, sent with every page |
+| `http::SPECULATION_PATH`, `http::SPECULATION_RULES`, `http::SPECULATION_TYPE` | where the rules are served, the rules (prefetch a same-site link on hover or focus; never `/api/` or `/_`), their `Content-Type` |

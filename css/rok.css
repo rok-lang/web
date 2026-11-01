@@ -303,6 +303,9 @@ a.src:hover{color:var(--ink)}
 .tbl th{text-align:left;font-size:13px;line-height:18px;font-weight:600;color:var(--ink-2);padding:8px 12px;border-bottom:1px solid var(--line)}
 .tbl td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .tbl tr:hover td{background:var(--bg-2)}
+/* table cells aligned in Markdown (chrome::align_classes): classes, not
+   style="", which the CSP refuses */
+:is(th,td).ta-l{text-align:left}:is(th,td).ta-c{text-align:center}:is(th,td).ta-r{text-align:right}
 
 /* motion: sizes that change after load ease from the old to the new; with
    reduced motion they snap. Opt in per element:
