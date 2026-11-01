@@ -288,7 +288,7 @@ A box or a label that changes size after the page has loaded eases from the old 
 | `details.grow` | the body slides open and shut (`::details-content`; the height eases where `interpolate-size` is supported, elsewhere it snaps) |
 | `.reveal` / `.reveal.open` | a one-row grid whose only child grows from 0 to its height (`grid-template-rows: 0fr` to `1fr`, every browser); put the child's padding on its own child, and make the closed child `inert` |
 | `.appear` | fades and drops in 4px when `hidden` is removed, out when it is set (`@starting-style`, `display` with `allow-discrete`) |
-| `rokResize(el, change)` | `js/copy.js`: runs `change`, then eases `el`'s width and height to the result (180ms); copy buttons use it for "Copied" |
+| `rokResize(el, change)` | `js/copy.js`: runs `change`, then eases `el`'s width and height to the result (180ms), from mid-flight if it is still moving, clipping overflow meanwhile; copy buttons use it for "Copied" |
 
 
 - No `light-dark()`, and no other colour function outside an `@supports` guard: the sites must keep their colours on iOS 16, Samsung Internet 25 and Android WebViews that lag behind.
