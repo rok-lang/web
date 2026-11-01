@@ -412,10 +412,11 @@ fn json_str(j: str, names: List<str>) -> str {
 /// The speculation rules every site names in a Speculation-Rules header:
 /// fetch a same-site page when the pointer rests on its link (or it gets
 /// focus), so the click finds it ready. Prefetch only, never prerender,
-/// so no page runs before it is opened.
+/// so no page runs before it is opened; never the API, `/_` or a sign-in
+/// or account path (rokstones.io), whose GET has an effect or is private.
 pub const SPECULATION_PATH: str = "/speculation-rules.json";
 pub const SPECULATION: str = "Speculation-Rules: \"/speculation-rules.json\"";
-pub const SPECULATION_RULES: str = "{\"prefetch\":[{\"source\":\"document\",\"where\":{\"and\":[{\"href_matches\":\"/*\"},{\"not\":{\"href_matches\":\"/api/*\"}},{\"not\":{\"href_matches\":\"/_*\"}},{\"not\":{\"selector_matches\":\"[download], [rel~=nofollow]\"}}]},\"eagerness\":\"moderate\"}]}\n";
+pub const SPECULATION_RULES: str = "{\"prefetch\":[{\"source\":\"document\",\"where\":{\"and\":[{\"href_matches\":\"/*\"},{\"not\":{\"href_matches\":\"/api/*\"}},{\"not\":{\"href_matches\":\"/_*\"}},{\"not\":{\"href_matches\":[\"/login\",\"/logout\",\"/auth/*\",\"/me\",\"/me/*\"]}},{\"not\":{\"selector_matches\":\"[download], [rel~=nofollow]\"}}]},\"eagerness\":\"moderate\"}]}\n";
 pub const SPECULATION_TYPE: str = "Content-Type: application/speculationrules+json";
 
 #[cfg(test)]

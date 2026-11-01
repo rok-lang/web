@@ -346,4 +346,4 @@ Every page carries a Content-Security-Policy without `'unsafe-inline'`: no `<scr
 | `http::REPORTING` | the `Reporting-Endpoints` header naming `/_csp`, sent beside the CSP |
 | `http::REPORT_PATH` | `/_csp`: answer a POST there with 204 and log `http::csp_report(r.body)` when it is some |
 | `http::SPECULATION` | the `Speculation-Rules` header, sent with every page |
-| `http::SPECULATION_PATH`, `http::SPECULATION_RULES`, `http::SPECULATION_TYPE` | where the rules are served, the rules (prefetch a same-site link on hover or focus; never `/api/` or `/_`), their `Content-Type` |
+| `http::SPECULATION_PATH`, `http::SPECULATION_RULES`, `http::SPECULATION_TYPE` | where the rules are served, the rules (prefetch a same-site link on hover or focus; never `/api/`, `/_`, sign-in or account paths), their `Content-Type` |
