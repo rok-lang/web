@@ -310,16 +310,17 @@ a.src:hover{color:var(--ink)}
      .reveal(.open)  a one-row grid whose only child grows from nothing;
                      give the child's padding to its own child
      .appear         fades in when [hidden] goes, out when it comes back
+                   (and takes no clicks while it fades)
      rokResize(el,f) copy.js: run f, ease el's width and height to the result
    Nothing animates on first paint: .appear starts hidden, the rest wait
    for a click */
 .rk{--dur:200ms;--dur-out:150ms;--ease:cubic-bezier(.2,0,0,1)}
-details.grow::details-content{block-size:0;overflow-y:clip}
+details.grow::details-content{block-size:0;overflow:clip;overflow-clip-margin:4px}
 details.grow[open]::details-content{block-size:auto}
 .reveal{display:grid;grid-template-rows:0fr}
 .reveal.open{grid-template-rows:1fr}
 .reveal>*{min-height:0;overflow:hidden}
-.appear[hidden]{display:none!important;opacity:0;translate:0 -4px}
+.appear[hidden]{display:none!important;opacity:0;translate:0 -4px;pointer-events:none}
 @media (prefers-reduced-motion:no-preference){
   .rk{interpolate-size:allow-keywords}
   details.grow::details-content{transition:block-size var(--dur) var(--ease),content-visibility var(--dur) allow-discrete}
